@@ -1,0 +1,29 @@
+node_modules/
+dist/
+build/
+.cache/
+*.log
+.DS_Store
+.env
+.env.local
+
+# server
+server/data.db
+server/data.db-journal
+server/data.db-shm
+server/data.db-wal
+
+# editor
+.vscode/
+.idea/
+
+# build artifacts
+*.tsbuildinfo
+
+# local tooling
+.claude/
+.compare/
+
+# misc binaries / screenshots
+*.msi
+Copilot_*.png

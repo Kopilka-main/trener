@@ -1,0 +1,158 @@
+import { Router } from 'express';
+import { z } from 'zod';
+import { nanoid } from 'nanoid';
+import { db, type ClientRow } from '../db.js';
+import { asyncHandler, HttpError, parseBody, requireRow } from '../http.js';
+
+export const clientsRouter = Router();
+
+const clientInput = z.object({
+  firstName: z.string().min(1).max(80),
+  lastName: z.string().min(1).max(80),
+  birthDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullish(),
+  heightCm: z.number().int().positive().nullish(),
+  weightKg: z.number().positive().nullish(),
+  phone: z.string().max(40).nullish(),
+  hashtags: z.string().max(500).nullish(),
+  notes: z.string().max(4000).nullish(),
+  medicalNotes: z.string().max(4000).nullish(),
+  restingPulse: z.number().int().positive().nullish(),
+  scheduleDay: z.number().int().min(0).max(6).nullish(),
+  scheduleTime: z.string().regex(/^\d{2}:\d{2}$/).nullish(),
+  currentTrainingType: z.string().max(80).nullish(),
+  accountId: z.string().max(40).nullish(),
+});
+
+type ClientInput = z.infer<typeof clientInput>;
+
+function toApi(row: ClientRow) {
+  return {
+    id: row.id,
+    firstName: row.first_name,
+    lastName: row.last_name,
+    birthDate: row.birth_date,
+    heightCm: row.height_cm,
+    weightKg: row.weight_kg,
+    phone: row.phone,
+    hashtags: row.hashtags,
+    notes: row.notes,
+    medicalNotes: row.medical_notes,
+    restingPulse: row.resting_pulse,
+    scheduleDay: row.schedule_day,
+    scheduleTime: row.schedule_time,
+    currentTrainingType: row.current_training_type,
+    accountId: row.account_id,
+    createdAt: row.created_at,
+  };
+}
+
+const insertStmt = db.prepare(`
+  INSERT INTO clients (
+    id, first_name, last_name, birth_date, height_cm, weight_kg,
+    phone, hashtags, notes, medical_notes, resting_pulse,
+    schedule_day, schedule_time, current_training_type, account_id, created_at
+  ) VALUES (
+    @id, @first_name, @last_name, @birth_date, @height_cm, @weight_kg,
+    @phone, @hashtags, @notes, @medical_notes, @resting_pulse,
+    @schedule_day, @schedule_time, @current_training_type, @account_id, @created_at
+  )
+`);
+
+const updateStmt = db.prepare(`
+  UPDATE clients SET
+    first_name = @first_name,
+    last_name = @last_name,
+    birth_date = @birth_date,
+    height_cm = @height_cm,
+    weight_kg = @weight_kg,
+    phone = @phone,
+    hashtags = @hashtags,
+    notes = @notes,
+    medical_notes = @medical_notes,
+    resting_pulse = @resting_pulse,
+    schedule_day = @schedule_day,
+    schedule_time = @schedule_time,
+    current_training_type = @current_training_type,
+    account_id = @account_id
+  WHERE id = @id
+`);
+
+const getStmt = db.prepare<[string], ClientRow>(`SELECT * FROM clients WHERE id = ?`);
+const listStmt = db.prepare<[], ClientRow>(`SELECT * FROM clients ORDER BY last_name COLLATE NOCASE, first_name COLLATE NOCASE`);
+const deleteStmt = db.prepare(`DELETE FROM clients WHERE id = ?`);
+
+function toRowParams(input: ClientInput, id: string, createdAt: string) {
+  return {
+    id,
+    first_name: input.firstName,
+    last_name: input.lastName,
+    birth_date: input.birthDate ?? null,
+    height_cm: input.heightCm ?? null,
+    weight_kg: input.weightKg ?? null,
+    phone: input.phone ?? null,
+    hashtags: input.hashtags ?? null,
+    notes: input.notes ?? null,
+    medical_notes: input.medicalNotes ?? null,
+    resting_pulse: input.restingPulse ?? null,
+    schedule_day: input.scheduleDay ?? null,
+    schedule_time: input.scheduleTime ?? null,
+    current_training_type: input.currentTrainingType ?? null,
+    account_id: input.accountId ?? null,
+    created_at: createdAt,
+  };
+}
+
+clientsRouter.get(
+  '/',
+  asyncHandler((req, res) => {
+    const q = String(req.query.q ?? '').trim().toLowerCase();
+    const rows = listStmt.all();
+    const filtered = q
+      ? rows.filter((r) => {
+          const haystack = `${r.first_name} ${r.last_name} ${r.hashtags ?? ''} ${r.current_training_type ?? ''}`.toLowerCase();
+          return haystack.includes(q);
+        })
+      : rows;
+    res.json(filtered.map(toApi));
+  })
+);
+
+clientsRouter.post(
+  '/',
+  asyncHandler((req, res) => {
+    const input = parseBody(clientInput, req.body);
+    const id = nanoid(12);
+    const createdAt = new Date().toISOString();
+    insertStmt.run(toRowParams(input, id, createdAt));
+    const row = requireRow(getStmt.get(id), 'Client');
+    res.status(201).json(toApi(row));
+  })
+);
+
+clientsRouter.get(
+  '/:id',
+  asyncHandler((req, res) => {
+    const row = requireRow(getStmt.get(req.params.id), 'Client');
+    res.json(toApi(row));
+  })
+);
+
+clientsRouter.put(
+  '/:id',
+  asyncHandler((req, res) => {
+    const existing = requireRow(getStmt.get(req.params.id), 'Client');
+    const input = parseBody(clientInput, req.body);
+    updateStmt.run(toRowParams(input, existing.id, existing.created_at));
+    const row = requireRow(getStmt.get(existing.id), 'Client');
+    res.json(toApi(row));
+  })
+);
+
+clientsRouter.delete(
+  '/:id',
+  asyncHandler((req, res) => {
+    const result = deleteStmt.run(req.params.id);
+    if (result.changes === 0) throw new HttpError(404, 'Client not found');
+    res.status(204).send();
+  })
+);

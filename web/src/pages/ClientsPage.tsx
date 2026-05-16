@@ -1,0 +1,154 @@
+import { useMemo, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { CalendarDays, ChevronRight, Plus, Search } from 'lucide-react';
+import { useClients } from '../api/clients';
+import { useTrainer } from '../api/trainer';
+import { Avatar } from '../components/Avatar';
+import { AlphaIndex } from '../components/AlphaIndex';
+import { ClientPreviewSheet } from '../components/ClientPreviewSheet';
+import { useLongPress } from '../hooks/useLongPress';
+import { fullName } from '../lib/initials';
+import { formatSchedule } from '../lib/format';
+import type { Client } from '../api/types';
+
+export function ClientsPage() {
+  const navigate = useNavigate();
+  const [query, setQuery] = useState('');
+  const { data: clients = [], isLoading } = useClients(query);
+  const { data: trainer } = useTrainer();
+  const [previewClient, setPreviewClient] = useState<Client | null>(null);
+  const listRef = useRef<HTMLDivElement>(null);
+  const showTrainer = !!trainer && !query;
+
+  const grouped = useMemo(() => {
+    const sorted = [...clients].sort((a, b) => a.firstName.localeCompare(b.firstName, 'ru'));
+    const map = new Map<string, Client[]>();
+    for (const c of sorted) {
+      const letter = (c.firstName[0] ?? '?').toUpperCase();
+      if (!map.has(letter)) map.set(letter, []);
+      map.get(letter)!.push(c);
+    }
+    return Array.from(map.entries()).sort(([a], [b]) => a.localeCompare(b, 'ru'));
+  }, [clients]);
+
+  const availableLetters = useMemo(() => {
+    const set = new Set(grouped.map(([l]) => l));
+    if (showTrainer) set.add('#');
+    return set;
+  }, [grouped, showTrainer]);
+
+  const scrollToLetter = (letter: string) => {
+    const el = document.getElementById(`letter-${letter}`);
+    if (!el || !listRef.current) return;
+    listRef.current.scrollTo({ top: el.offsetTop - 8, behavior: 'smooth' });
+  };
+
+  return (
+    <div className="flex h-full flex-col">
+      <header className="px-5 pt-3 pb-3">
+        <div className="flex items-start justify-between">
+          <h1 className="text-[34px] font-bold leading-tight">Клиенты</h1>
+          <div className="flex shrink-0 items-center gap-2">
+            <button
+              onClick={() => navigate('/calendar')}
+              className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--color-chip)]"
+              aria-label="Календарь"
+            >
+              <CalendarDays size={18} />
+            </button>
+            <button
+              onClick={() => navigate('/clients/new')}
+              className="flex h-10 w-10 items-center justify-center rounded-full"
+              style={{ background: '#1a1a1a', color: '#ffffff' }}
+              aria-label="Добавить клиента"
+            >
+              <Plus size={18} />
+            </button>
+          </div>
+        </div>
+        <div className="mt-3 relative">
+          <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--color-ink-muted)]" />
+          <input
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Поиск по имени, тегу"
+            className="w-full rounded-2xl bg-[var(--color-chip)] py-3 pl-10 pr-4 text-sm placeholder:text-[var(--color-ink-muted)] focus:outline-none"
+          />
+        </div>
+      </header>
+
+      <div className="relative flex flex-1 overflow-hidden">
+        <div ref={listRef} className="min-w-0 flex-1 overflow-y-auto pb-4 pl-4 pr-2">
+          {isLoading && <div className="px-2 py-6 text-sm text-[var(--color-ink-muted)]">Загрузка…</div>}
+          {!isLoading && grouped.length === 0 && (
+            <div className="px-2 py-10 text-center text-sm text-[var(--color-ink-muted)]">
+              {query ? 'Ничего не найдено' : 'Список пуст. Добавьте первого клиента.'}
+            </div>
+          )}
+          {showTrainer && trainer && (
+            <section id="letter-#" className="mb-1">
+              <h2 className="px-1 pt-2 pb-1 text-[12px] font-medium text-[var(--color-ink-muted)]">#</h2>
+              <ul className="space-y-2">
+                <li>
+                  <button
+                    type="button"
+                    onClick={() => navigate('/trainer')}
+                    className="flex w-full items-center gap-3 rounded-2xl bg-[var(--color-card)] px-3 py-2.5 text-left active:scale-[0.99] transition-transform"
+                  >
+                    <Avatar firstName={trainer.firstName} lastName={trainer.lastName} size={44} />
+                    <div className="min-w-0 flex-1">
+                      <div className="text-[15px] font-semibold">Я</div>
+                      <div className="truncate text-[12px] text-[var(--color-ink-muted)]">
+                        {fullName(trainer.firstName, trainer.lastName)}
+                      </div>
+                    </div>
+                    <ChevronRight size={16} className="shrink-0 text-[var(--color-ink-muted)]" />
+                  </button>
+                </li>
+              </ul>
+            </section>
+          )}
+          {grouped.map(([letter, list]) => (
+            <section key={letter} id={`letter-${letter}`} className="mb-1">
+              <h2 className="px-1 pt-2 pb-1 text-[12px] font-medium text-[var(--color-ink-muted)]">{letter}</h2>
+              <ul className="space-y-2">
+                {list.map((c) => (
+                  <ClientRow key={c.id} client={c} onPreview={setPreviewClient} onOpen={() => navigate(`/clients/${c.id}/workouts`)} />
+                ))}
+              </ul>
+            </section>
+          ))}
+        </div>
+        <AlphaIndex available={availableLetters} onPick={scrollToLetter} />
+      </div>
+
+      <ClientPreviewSheet client={previewClient} open={!!previewClient} onClose={() => setPreviewClient(null)} />
+    </div>
+  );
+}
+
+function ClientRow({ client, onPreview, onOpen }: { client: Client; onPreview: (c: Client) => void; onOpen: () => void }) {
+  const longPress = useLongPress(() => onPreview(client));
+  const schedule = formatSchedule(client.scheduleDay, client.scheduleTime);
+  return (
+    <li>
+      <button
+        type="button"
+        onClick={onOpen}
+        {...longPress}
+        className="flex w-full items-center gap-3 rounded-2xl bg-[var(--color-card)] px-3 py-2.5 text-left active:scale-[0.99] transition-transform"
+      >
+        <Avatar firstName={client.firstName} lastName={client.lastName} size={44} />
+        <div className="min-w-0 flex-1">
+          <div className="truncate text-[15px] font-semibold">{fullName(client.firstName, client.lastName)}</div>
+          {(client.currentTrainingType || schedule) && (
+            <div className="truncate text-[12px] text-[var(--color-ink-muted)]">
+              {[client.currentTrainingType, schedule].filter(Boolean).join(' · ')}
+            </div>
+          )}
+        </div>
+      </button>
+    </li>
+  );
+}
