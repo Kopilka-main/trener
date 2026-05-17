@@ -42,7 +42,8 @@ button {
 .app-shell {
   width: 100%;
   max-width: 430px;
-  min-height: 100dvh;
+  height: 100vh;
+  height: 100dvh;
   margin-inline: auto;
   background: var(--color-bg);
   display: flex;

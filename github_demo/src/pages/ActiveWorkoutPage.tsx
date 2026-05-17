@@ -6,7 +6,7 @@ import { AddExerciseSheet } from '../components/AddExerciseSheet';
 import { useAddWorkoutExercise, useClientWorkout, useRemoveWorkoutExercise, useReorderWorkoutExercises, useUpdateSet } from '../api/client-workouts';
 import { useClient } from '../api/clients';
 import { useElapsed } from '../hooks/useElapsed';
-import { appBase } from '../lib/routes';
+import { appBase, clientWorkoutsPath } from '../lib/routes';
 import { formatDuration } from '../lib/format';
 import { shortName } from '../lib/initials';
 import type { WorkoutExerciseDetail, WorkoutSet } from '../api/types';
@@ -55,7 +55,7 @@ export function ActiveWorkoutPage() {
   return (
     <div className="flex h-full flex-col">
       <header className="grid grid-cols-[44px_1fr_auto] items-center px-3 py-3">
-        <button onClick={() => navigate(-1)} className="flex h-8 w-8 items-center justify-center" aria-label="Назад">
+        <button onClick={() => navigate(clientWorkoutsPath(workout.clientId))} className="flex h-8 w-8 items-center justify-center" aria-label="Назад">
           <Square size={18} strokeWidth={1.6} />
         </button>
         <div className="text-center">

@@ -52,8 +52,9 @@ export function SortableList<T extends { id: string }>({
 
 function SortableRow({ id, children, className, contentClassName }: { id: string; children: ReactNode; className: string; contentClassName: string }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+  // Перетаскивание только по вертикали — обнуляем горизонтальный сдвиг.
   const style: React.CSSProperties = {
-    transform: CSS.Transform.toString(transform),
+    transform: transform ? CSS.Transform.toString({ ...transform, x: 0 }) : undefined,
     transition,
     opacity: isDragging ? 0.6 : 1,
   };
@@ -62,10 +63,10 @@ function SortableRow({ id, children, className, contentClassName }: { id: string
       <button
         {...attributes}
         {...listeners}
-        className="flex w-7 items-center justify-center rounded-l-2xl text-[var(--color-ink-muted)]"
+        className="flex w-11 shrink-0 touch-none items-center justify-center rounded-l-2xl text-[var(--color-ink-muted)] active:bg-black/5"
         aria-label="Перетащить"
       >
-        <GripVertical size={16} />
+        <GripVertical size={18} />
       </button>
       <div className={`min-w-0 flex-1 ${contentClassName}`}>{children}</div>
     </li>

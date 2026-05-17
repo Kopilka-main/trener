@@ -36,7 +36,7 @@ export function WorkoutSummaryPage() {
 
   return (
     <div className="flex h-full flex-col">
-      <ScreenHeader title="Итоги тренировки" back closeIcon />
+      <ScreenHeader title="Итоги тренировки" back={() => navigate(clientWorkoutsPath(client.id))} closeIcon />
       <div className="flex-1 overflow-y-auto px-4 pb-6 space-y-4">
         <div className="rounded-3xl bg-[var(--color-card)] p-6 text-center">
           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[var(--color-success)] text-white">
