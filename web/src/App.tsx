@@ -1,6 +1,5 @@
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { BottomTabBar } from './components/BottomTabBar';
-import { StatusBar } from './components/StatusBar';
 import { RoleSelectPage } from './pages/RoleSelectPage';
 import { ClientsPage } from './pages/ClientsPage';
 import { ClientEditPage } from './pages/ClientEditPage';
@@ -32,7 +31,6 @@ export function App() {
   if (role !== 'trainer' && role !== 'client') {
     return (
       <div className="app-shell">
-        <StatusBar />
         <main className="flex-1 overflow-y-auto overflow-x-hidden">
           <RoleSelectPage />
         </main>
@@ -49,7 +47,6 @@ export function App() {
 
   return (
     <div className="app-shell">
-      <StatusBar />
       <main className="flex-1 overflow-y-auto overflow-x-hidden">
         {!authed && !isAuthRoute ? (
           <Navigate to={`${TRAINER_BASE}/login`} replace />
