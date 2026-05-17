@@ -33,7 +33,7 @@ export function App() {
     return (
       <div className="app-shell">
         <StatusBar />
-        <main className="flex-1 overflow-y-auto">
+        <main className="flex-1 overflow-y-auto overflow-x-hidden">
           <RoleSelectPage />
         </main>
       </div>
@@ -50,7 +50,7 @@ export function App() {
   return (
     <div className="app-shell">
       <StatusBar />
-      <main className="flex-1 overflow-y-auto">
+      <main className="flex-1 overflow-y-auto overflow-x-hidden">
         {!authed && !isAuthRoute ? (
           <Navigate to={`${TRAINER_BASE}/login`} replace />
         ) : isClient ? (

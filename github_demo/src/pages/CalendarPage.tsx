@@ -132,7 +132,7 @@ export function CalendarPage() {
               <button onClick={() => shift(-1)} className="flex h-8 w-8 items-center justify-center rounded-full active:bg-black/5" aria-label="Назад">
                 <ChevronLeft size={18} />
               </button>
-              <button onClick={() => setAnchor(new Date())} className="min-w-[120px] text-center" title="К сегодняшнему дню">
+              <button onClick={() => setAnchor(new Date())} className="min-w-[96px] text-center" title="К сегодняшнему дню">
                 <div className="text-[15px] font-bold leading-tight">{periodLabel}</div>
               </button>
               <button onClick={() => shift(1)} className="flex h-8 w-8 items-center justify-center rounded-full active:bg-black/5" aria-label="Вперёд">
@@ -198,7 +198,7 @@ function Segmented<T extends string>({
           <button
             key={o.value}
             onClick={() => onChange(o.value)}
-            className={`rounded-full px-3 py-1 text-[12px] font-medium ${active ? 'bg-ink' : 'text-[var(--color-ink-muted)]'}`}
+            className={`shrink-0 rounded-full px-2.5 py-1 text-[12px] font-medium ${active ? 'bg-ink' : 'text-[var(--color-ink-muted)]'}`}
             style={active ? { color: '#ffffff' } : undefined}
           >
             {o.label}
