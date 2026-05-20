@@ -39,7 +39,9 @@ export function CalendarPage() {
   const clientId = params.get('clientId') ?? undefined;
   const { data: filterClient } = useClient(clientId);
 
-  const [view, setView] = useState<View>('day');
+  // У клиента по умолчанию показываем месяц (общая картина),
+  // в общем календаре — день (привычный планировочный режим).
+  const [view, setView] = useState<View>(clientId ? 'month' : 'day');
   const [creating, setCreating] = useState(false);
   const [anchor, setAnchor] = useState<Date>(new Date());
   const [editing, setEditing] = useState<Session | null>(null);
