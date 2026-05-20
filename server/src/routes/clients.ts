@@ -170,9 +170,17 @@ const balanceCompletedApprovedStmt = db.prepare<[string], { n: number }>(
   `SELECT COUNT(*) AS n FROM sessions
    WHERE client_id = ? AND status = 'completed' AND approval = 'approved'`
 );
+const balanceApprovedTotalStmt = db.prepare<[string], { n: number }>(
+  `SELECT COUNT(*) AS n FROM sessions
+   WHERE client_id = ? AND approval = 'approved'`
+);
 const balanceUnapprovedStmt = db.prepare<[string], { n: number }>(
   `SELECT COUNT(*) AS n FROM sessions
    WHERE client_id = ? AND status = 'planned' AND approval IN ('none', 'pending')`
+);
+const balanceNeedsSendingStmt = db.prepare<[string], { n: number }>(
+  `SELECT COUNT(*) AS n FROM sessions
+   WHERE client_id = ? AND status = 'planned' AND approval = 'none'`
 );
 
 clientsRouter.get(
@@ -182,12 +190,16 @@ clientsRouter.get(
     const paid = balancePaidStmt.get(req.params.id)?.paid ?? 0;
     const scheduled = balanceScheduledStmt.get(req.params.id)?.n ?? 0;
     const completedApproved = balanceCompletedApprovedStmt.get(req.params.id)?.n ?? 0;
+    const approvedTotal = balanceApprovedTotalStmt.get(req.params.id)?.n ?? 0;
     const unapproved = balanceUnapprovedStmt.get(req.params.id)?.n ?? 0;
+    const needsSending = balanceNeedsSendingStmt.get(req.params.id)?.n ?? 0;
     res.json({
       paid,
       scheduled,
       completedApproved,
+      approvedTotal,
       unapproved,
+      needsSending,
       remaining: paid - completedApproved,
     });
   })

@@ -91,20 +91,8 @@ export function ClientCardPage() {
           <ChevronRight size={18} className="shrink-0" />
         </button>
 
-        {/* Две вторичные CTA — чат и календарь по клиенту */}
+        {/* Две вторичные CTA — календарь и чат по клиенту */}
         <div className="grid grid-cols-2 gap-3">
-          <button
-            onClick={() => navigate(`/trainer/chat/${id}`)}
-            className="flex flex-col items-start gap-2 rounded-2xl bg-[var(--color-card)] p-4 text-left"
-          >
-            <span className="flex h-11 w-11 items-center justify-center rounded-full bg-[var(--color-chip)]">
-              <MessageSquare size={20} />
-            </span>
-            <span>
-              <span className="block text-[14px] font-bold leading-tight">Написать</span>
-              <span className="block text-[11px] text-[var(--color-ink-muted)]">чат с клиентом</span>
-            </span>
-          </button>
           <button
             onClick={() => navigate(`/trainer/calendar?clientId=${id}`)}
             className="flex flex-col items-start gap-2 rounded-2xl bg-[var(--color-card)] p-4 text-left"
@@ -115,6 +103,18 @@ export function ClientCardPage() {
             <span>
               <span className="block text-[14px] font-bold leading-tight">Календарь</span>
               <span className="block text-[11px] text-[var(--color-ink-muted)]">занятия клиента</span>
+            </span>
+          </button>
+          <button
+            onClick={() => navigate(`/trainer/chat/${id}`)}
+            className="flex flex-col items-start gap-2 rounded-2xl bg-[var(--color-card)] p-4 text-left"
+          >
+            <span className="flex h-11 w-11 items-center justify-center rounded-full bg-[var(--color-chip)]">
+              <MessageSquare size={20} />
+            </span>
+            <span>
+              <span className="block text-[14px] font-bold leading-tight">Написать</span>
+              <span className="block text-[11px] text-[var(--color-ink-muted)]">чат с клиентом</span>
             </span>
           </button>
         </div>
@@ -241,30 +241,38 @@ function BalanceCard({ clientId }: { clientId: string }) {
           {remainingLabel}
         </span>
       </div>
-      <div className="grid grid-cols-3 gap-2 text-center">
+      <div className="grid grid-cols-2 gap-2 text-center">
         <BalanceCell label="Оплачено" value={balance.paid} />
-        <BalanceCell label="Проведено" value={balance.completedApproved} />
+        <BalanceCell label="Запланировано" value={balance.scheduled} />
         <BalanceCell
-          label="Несогласовано"
+          label="Согласовано"
+          value={balance.approvedTotal}
+          tone={balance.approvedTotal > 0 ? 'success' : undefined}
+        />
+        <BalanceCell
+          label="Не согласовано"
           value={balance.unapproved}
           tone={balance.unapproved > 0 ? 'warn' : undefined}
         />
       </div>
-      <div className="text-center text-[11px] text-[var(--color-ink-muted)]">
-        Назначено в календаре · {balance.scheduled}
-      </div>
+      {balance.needsSending > 0 && (
+        <div className="rounded-xl px-3 py-2 text-center text-[12px]" style={{ background: 'rgba(217,145,43,0.12)', color: '#7a4a14' }}>
+          Осталось отправить клиенту: <span className="font-bold">{balance.needsSending}</span>
+        </div>
+      )}
     </div>
   );
 }
 
-function BalanceCell({ label, value, tone }: { label: string; value: number; tone?: 'warn' }) {
-  const color = tone === 'warn' ? '#d9912b' : undefined;
+function BalanceCell({ label, value, tone }: { label: string; value: number; tone?: 'warn' | 'success' }) {
+  const color =
+    tone === 'warn' ? '#d9912b' : tone === 'success' ? 'var(--color-success)' : undefined;
   return (
     <div className="rounded-xl bg-[var(--color-chip)] py-2">
-      <div className="text-[16px] font-bold tabular-nums" style={color ? { color } : undefined}>
+      <div className="text-[18px] font-bold tabular-nums" style={color ? { color } : undefined}>
         {value}
       </div>
-      <div className="text-[10px] text-[var(--color-ink-muted)]">{label}</div>
+      <div className="text-[11px] text-[var(--color-ink-muted)]">{label}</div>
     </div>
   );
 }

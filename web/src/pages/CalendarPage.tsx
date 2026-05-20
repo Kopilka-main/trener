@@ -256,43 +256,61 @@ function ApprovalBadge({ session, size = 14 }: { session: Session; size?: number
   return <CheckCheck size={size} className="shrink-0" style={{ color: APPROVED_BLUE }} aria-label="Согласовано клиентом" />;
 }
 
-// Степпер 4 состояний для формы занятия — тренер ставит вручную.
-function ApprovalStepper({ value, onChange }: { value: ApprovalStage; onChange: (v: ApprovalStage) => void }) {
-  const items: Array<{ key: ApprovalStage; label: string; render: () => React.ReactNode }> = [
-    { key: 'none', label: 'Не отправлено', render: () => <CircleDashed size={14} className="text-[var(--color-ink-muted)]" /> },
-    { key: 'sent', label: 'Отправлено', render: () => <Check size={14} className="text-[var(--color-ink-muted)]" /> },
-    { key: 'delivered', label: 'Получено', render: () => <CheckCheck size={14} className="text-[var(--color-ink-muted)]" /> },
-    { key: 'approved', label: 'Согласовано', render: () => <CheckCheck size={14} style={{ color: APPROVED_BLUE }} /> },
-  ];
+// Статус согласования в форме занятия — не степпер, а индикатор.
+// Тренер сам ничего не выставляет: статус продвигается автоматически
+// (есть accountId у клиента → отправлено; клиент опросил → получено;
+// клиент подтвердил → согласовано).
+function ApprovalStatus({
+  session,
+  canSend,
+  clientPicked,
+  clientId,
+}: {
+  session: Session | null;
+  canSend: boolean;
+  clientPicked: boolean;
+  clientId: string;
+}) {
+  const navigate = useNavigate();
+  if (!clientPicked) return null;
+  if (!canSend) {
+    return (
+      <div
+        className="rounded-2xl px-4 py-3 text-[12px]"
+        style={{ background: 'rgba(217,145,43,0.12)', color: '#7a4a14' }}
+      >
+        <div className="font-semibold">Не получится отправить на согласование</div>
+        <div className="mt-0.5 opacity-90">
+          Укажите «ID клиента» в его карточке — тогда занятия будут отправляться автоматически.
+        </div>
+        <button
+          type="button"
+          onClick={() => navigate(`/trainer/clients/${clientId}/edit`)}
+          className="mt-1 text-[12px] font-semibold underline"
+        >
+          Открыть карточку клиента
+        </button>
+      </div>
+    );
+  }
+  if (!session) {
+    return (
+      <div className="flex items-center gap-2 rounded-2xl bg-[var(--color-card)] px-4 py-3 text-[13px]">
+        <Check size={14} className="text-[var(--color-ink-muted)]" />
+        <span>Будет отправлено клиенту на согласование</span>
+      </div>
+    );
+  }
+  const stage = approvalStage(session);
+  const label =
+    stage === 'approved' ? 'Согласовано клиентом'
+      : stage === 'delivered' ? 'Клиент получил уведомление'
+      : stage === 'sent' ? 'Отправлено клиенту'
+      : 'Не отправлено';
   return (
-    <div className="grid grid-cols-4 gap-1.5">
-      {items.map((it) => {
-        const active = it.key === value;
-        return (
-          <button
-            key={it.key}
-            type="button"
-            onClick={() => onChange(it.key)}
-            className={`flex flex-col items-center gap-1 rounded-2xl px-1 py-2 text-[10px] font-medium ${
-              active ? 'bg-ink' : 'bg-[var(--color-chip)]'
-            }`}
-            style={active ? { color: '#ffffff' } : undefined}
-          >
-            <span className={active ? 'opacity-100' : 'opacity-80'}>
-              {active && it.key === 'approved' ? (
-                <CheckCheck size={14} style={{ color: APPROVED_BLUE }} />
-              ) : active ? (
-                it.key === 'none' ? <CircleDashed size={14} style={{ color: '#ffffff' }} />
-                  : it.key === 'sent' ? <Check size={14} style={{ color: '#ffffff' }} />
-                  : <CheckCheck size={14} style={{ color: '#ffffff' }} />
-              ) : (
-                it.render()
-              )}
-            </span>
-            <span className="leading-tight text-center">{it.label}</span>
-          </button>
-        );
-      })}
+    <div className="flex items-center gap-2 rounded-2xl bg-[var(--color-card)] px-4 py-3 text-[13px]">
+      <ApprovalBadge session={session} size={16} />
+      <span className="font-medium">{label}</span>
     </div>
   );
 }
@@ -615,16 +633,22 @@ function SessionForm({
   const [location, setLocation] = useState(session?.location ?? LOCATIONS[0]);
   const [title, setTitle] = useState(session?.title ?? '');
   const [typePickerOpen, setTypePickerOpen] = useState(false);
-  // 4 состояния «как в мессенджере»: не отправлено / отправлено / получено / согласовано.
-  const [stage, setStage] = useState<ApprovalStage>(() => (session ? approvalStage(session) : 'none'));
+
+  // Тренер сам статус не выставляет. Логика: если у клиента есть accountId —
+  // занятие автоматически уходит на согласование (approval='pending').
+  // Если не подтверждено или ещё не отправлено — продвигается до 'pending';
+  // 'approved' (клиент уже подтвердил) — оставляем как есть.
+  const selectedClient = clients.find((c) => c.id === clientId);
+  const canSend = !!selectedClient?.accountId;
+
+  const computeApproval = (): SessionApproval => {
+    if (session?.approval === 'approved') return 'approved';
+    if (canSend) return 'pending';
+    return session?.approval ?? 'none';
+  };
 
   const save = async () => {
     if (!clientId) { alert('Выберите клиента'); return; }
-    const approval: SessionApproval =
-      stage === 'approved' ? 'approved' : stage === 'none' ? 'none' : 'pending';
-    let deliveredAt: string | null;
-    if (stage === 'none' || stage === 'sent') deliveredAt = null;
-    else deliveredAt = session?.deliveredAt ?? new Date().toISOString();
     const input: SessionInput = {
       clientId,
       date,
@@ -632,8 +656,8 @@ function SessionForm({
       durationMin: duration,
       location: location || null,
       title: title.trim() || null,
-      approval,
-      deliveredAt,
+      approval: computeApproval(),
+      // deliveredAt не трогаем — undefined; сервер сохранит существующее.
     };
     if (session) await updateMut.mutateAsync({ id: session.id, input });
     else await createMut.mutateAsync(input);
@@ -719,9 +743,8 @@ function SessionForm({
         </div>
       </Field>
 
-      <Field label="Статус согласования">
-        <ApprovalStepper value={stage} onChange={setStage} />
-      </Field>
+      <ApprovalStatus session={session} canSend={canSend} clientPicked={!!clientId} clientId={clientId} />
+
 
       <button
         onClick={save}
