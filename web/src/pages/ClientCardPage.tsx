@@ -33,19 +33,7 @@ export function ClientCardPage() {
 
   return (
     <div className="flex h-full flex-col">
-      <ScreenHeader
-        title="Карточка клиента"
-        back
-        right={
-          <button
-            onClick={() => navigate(`/trainer/clients/${id}/edit`)}
-            className="flex h-8 w-8 items-center justify-center"
-            aria-label="Редактировать"
-          >
-            <Pencil size={16} />
-          </button>
-        }
-      />
+      <ScreenHeader title="Карточка клиента" back />
       <div className="flex-1 overflow-y-auto px-4 pb-8 space-y-5">
         {/* Шапка: аватар + имя + теги */}
         <div className="rounded-3xl bg-[var(--color-card)] p-4 space-y-3">
