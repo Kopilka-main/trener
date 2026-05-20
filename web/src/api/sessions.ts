@@ -14,11 +14,20 @@ export function useSessions(from: string, to: string, clientId?: string) {
   });
 }
 
+// Создание/изменение/удаление занятия влияет на: список занятий, оплату по
+// сессиям (paymentStatus), баланс клиентов и алерты тренера.
+function invalidateSessionRelated(qc: ReturnType<typeof useQueryClient>) {
+  qc.invalidateQueries({ queryKey: ['sessions'] });
+  qc.invalidateQueries({ queryKey: ['sessions-paid'] });
+  qc.invalidateQueries({ queryKey: ['balance'] });
+  qc.invalidateQueries({ queryKey: ['alerts'] });
+}
+
 export function useCreateSession() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (input: SessionInput) => api.post<Session>('/api/sessions', input),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['sessions'] }),
+    onSuccess: () => invalidateSessionRelated(qc),
   });
 }
 
@@ -26,7 +35,7 @@ export function useUpdateSession() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: ({ id, input }: { id: string; input: SessionInput }) => api.put<Session>(`/api/sessions/${id}`, input),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['sessions'] }),
+    onSuccess: () => invalidateSessionRelated(qc),
   });
 }
 
@@ -34,7 +43,7 @@ export function useDeleteSession() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => api.delete(`/api/sessions/${id}`),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['sessions'] }),
+    onSuccess: () => invalidateSessionRelated(qc),
   });
 }
 
@@ -51,6 +60,6 @@ export function useDeliverSession() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => api.patch<Session>(`/api/sessions/${id}/deliver`),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['sessions'] }),
+    onSuccess: () => invalidateSessionRelated(qc),
   });
 }

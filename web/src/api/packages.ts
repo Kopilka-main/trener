@@ -10,15 +10,20 @@ export function useClientPackages(clientId: string | undefined) {
   });
 }
 
+// Изменение пакетов влияет на остаток, цвета занятий в календаре и алерты.
+function invalidatePackageRelated(qc: ReturnType<typeof useQueryClient>, clientId: string) {
+  qc.invalidateQueries({ queryKey: ['packages', clientId] });
+  qc.invalidateQueries({ queryKey: ['balance', clientId] });
+  qc.invalidateQueries({ queryKey: ['sessions-paid'] });
+  qc.invalidateQueries({ queryKey: ['alerts'] });
+}
+
 export function useCreatePackage(clientId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (input: PaymentPackageInput) =>
       api.post<PaymentPackage>(`/api/clients/${clientId}/packages`, input),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['packages', clientId] });
-      qc.invalidateQueries({ queryKey: ['balance', clientId] });
-    },
+    onSuccess: () => invalidatePackageRelated(qc, clientId),
   });
 }
 
@@ -27,10 +32,7 @@ export function useUpdatePackage(packageId: string, clientId: string) {
   return useMutation({
     mutationFn: (input: PaymentPackageInput) =>
       api.put<PaymentPackage>(`/api/packages/${packageId}`, input),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['packages', clientId] });
-      qc.invalidateQueries({ queryKey: ['balance', clientId] });
-    },
+    onSuccess: () => invalidatePackageRelated(qc, clientId),
   });
 }
 
@@ -38,9 +40,6 @@ export function useDeletePackage(clientId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (packageId: string) => api.delete(`/api/packages/${packageId}`),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['packages', clientId] });
-      qc.invalidateQueries({ queryKey: ['balance', clientId] });
-    },
+    onSuccess: () => invalidatePackageRelated(qc, clientId),
   });
 }
