@@ -27,7 +27,7 @@ export function backTarget(pathname: string, search = ''): string {
   const base = segs[0] === 'client' ? CLIENT_BASE : TRAINER_BASE;
   const sub = segs[1] ?? '';
   const isClient = base === CLIENT_BASE;
-  const sectionHome = isClient ? `${CLIENT_BASE}/workouts` : `${TRAINER_BASE}/clients`;
+  const sectionHome = isClient ? `${CLIENT_BASE}/workouts` : `${TRAINER_BASE}/home`;
 
   if (sub === 'exercises' || sub === 'templates') return `${base}/exercises`;
   if (sub === 'accounting' || sub === 'gyms') return `${TRAINER_BASE}/profile`;
@@ -45,11 +45,12 @@ export function backTarget(pathname: string, search = ''): string {
     return sectionHome;
   }
   if (sub === 'clients') {
-    // /clients/new и /clients/:id (карточка) возвращают в список.
+    // /clients (список) и /clients/new — в home; /clients/:id (карточка) — в список;
     // /clients/:id/edit и /clients/:id/workouts — в карточку клиента.
     const idOrAction = segs[2];
     const action = segs[3];
-    if (!idOrAction || idOrAction === 'new') return `${TRAINER_BASE}/clients`;
+    if (!idOrAction) return sectionHome;
+    if (idOrAction === 'new') return `${TRAINER_BASE}/clients`;
     if (!action) return `${TRAINER_BASE}/clients`;
     return `${TRAINER_BASE}/clients/${idOrAction}`;
   }

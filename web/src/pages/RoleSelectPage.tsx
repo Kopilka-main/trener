@@ -11,7 +11,7 @@ export function RoleSelectPage() {
     if (role === 'client') {
       navigate(`${CLIENT_BASE}/workouts`, { replace: true });
     } else {
-      navigate(localStorage.getItem('trener_auth') ? `${TRAINER_BASE}/clients` : `${TRAINER_BASE}/login`, { replace: true });
+      navigate(localStorage.getItem('trener_auth') ? `${TRAINER_BASE}/home` : `${TRAINER_BASE}/login`, { replace: true });
     }
   };
 

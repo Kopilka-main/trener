@@ -16,7 +16,7 @@ export function LoginPage() {
       return;
     }
     localStorage.setItem('trener_auth', '1');
-    navigate(`${TRAINER_BASE}/clients`, { replace: true });
+    navigate(`${TRAINER_BASE}/home`, { replace: true });
   };
 
   return (

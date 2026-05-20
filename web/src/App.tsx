@@ -5,6 +5,7 @@ import { ClientsPage } from './pages/ClientsPage';
 import { ClientEditPage } from './pages/ClientEditPage';
 import { ClientWorkoutsPage } from './pages/ClientWorkoutsPage';
 import { ClientCardPage } from './pages/ClientCardPage';
+import { HomePage } from './pages/HomePage';
 import { ClientProfilePage } from './pages/ClientProfilePage';
 import { KnowledgeBasePage } from './pages/KnowledgeBasePage';
 import { ExerciseEditorPage } from './pages/ExerciseEditorPage';
@@ -56,7 +57,7 @@ export function App() {
   const isClient = role === 'client';
   const authed = isClient || !!localStorage.getItem('trener_auth');
   const isAuthRoute = path === `${TRAINER_BASE}/login` || path === `${TRAINER_BASE}/register`;
-  const home = isClient ? `${CLIENT_BASE}/workouts` : `${TRAINER_BASE}/clients`;
+  const home = isClient ? `${CLIENT_BASE}/workouts` : `${TRAINER_BASE}/home`;
 
   const showTabs = authed && (isClient ? CLIENT_TAB_PATHS : TRAINER_TAB_PATHS).includes(path);
 
@@ -87,6 +88,7 @@ export function App() {
           <Routes>
             <Route path={`${TRAINER_BASE}/login`} element={<LoginPage />} />
             <Route path={`${TRAINER_BASE}/register`} element={<RegisterPage />} />
+            <Route path={`${TRAINER_BASE}/home`} element={<HomePage />} />
             <Route path={`${TRAINER_BASE}/clients`} element={<ClientsPage />} />
             <Route path={`${TRAINER_BASE}/clients/new`} element={<ClientEditPage mode="create" />} />
             <Route path={`${TRAINER_BASE}/clients/:id`} element={<ClientCardPage />} />
