@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { api } from './client';
 
 export type TrainerAlert = {
-  type: 'low_balance' | 'unpaid';
+  type: 'low_balance' | 'unpaid' | 'no_upcoming';
   severity: 'warn' | 'danger';
   clientId: string;
   clientName: string;

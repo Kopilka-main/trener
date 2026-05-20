@@ -11,6 +11,7 @@ type Row = {
   last_name: string;
   paid: number;
   used: number;
+  upcoming: number;       // запланировано на ближайшие 7 дней
 };
 
 const balancesStmt = db.prepare<[], Row>(`
@@ -21,7 +22,10 @@ const balancesStmt = db.prepare<[], Row>(`
     COALESCE((SELECT SUM(lessons_paid) FROM payment_packages
               WHERE client_id = c.id AND status = 'active'), 0) AS paid,
     (SELECT COUNT(*) FROM sessions
-     WHERE client_id = c.id AND status = 'completed') AS used
+     WHERE client_id = c.id AND status = 'completed') AS used,
+    (SELECT COUNT(*) FROM sessions
+     WHERE client_id = c.id AND status = 'planned'
+       AND date >= DATE('now') AND date <= DATE('now', '+7 days')) AS upcoming
   FROM clients c
 `);
 
@@ -29,7 +33,7 @@ const balancesStmt = db.prepare<[], Row>(`
 const LOW_BALANCE_THRESHOLD = 7;
 
 type Alert = {
-  type: 'low_balance' | 'unpaid';
+  type: 'low_balance' | 'unpaid' | 'no_upcoming';
   severity: 'warn' | 'danger';
   clientId: string;
   clientName: string;
@@ -64,6 +68,17 @@ alertsRouter.get(
             remaining === 0
               ? 'Пакет закончился'
               : `Осталось ${remaining} ${plural(remaining, 'тренировка', 'тренировки', 'тренировок')}`,
+        });
+      }
+      // Оплачены тренировки, но на ближайшую неделю ничего не назначено.
+      if (remaining > 0 && r.upcoming === 0) {
+        alerts.push({
+          type: 'no_upcoming',
+          severity: 'warn',
+          clientId: r.id,
+          clientName,
+          remaining,
+          message: 'Оплачены тренировки, но на ближайшую неделю ничего не назначено',
         });
       }
     }

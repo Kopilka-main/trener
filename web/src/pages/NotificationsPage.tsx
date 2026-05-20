@@ -52,7 +52,11 @@ function NotificationBubble({ alert }: { alert: TrainerAlert }) {
       </div>
       <div className="min-w-0 max-w-[85%] rounded-2xl bg-[var(--color-card)] p-3 space-y-1.5">
         <div className="text-[11px] font-semibold uppercase tracking-wider" style={{ color }}>
-          {isDanger ? 'Требуется оплата' : 'Скоро закончится пакет'}
+          {alert.type === 'unpaid'
+            ? 'Требуется оплата'
+            : alert.type === 'no_upcoming'
+              ? 'Нет занятий на неделю'
+              : 'Скоро закончится пакет'}
         </div>
         <div className="text-[14px] font-semibold">{alert.clientName}</div>
         <div className="text-[13px] text-[var(--color-ink-muted)]">{alert.message}</div>
