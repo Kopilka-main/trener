@@ -2,18 +2,14 @@ import { useNavigate } from 'react-router-dom';
 import { BookOpen, CalendarDays, ChevronRight, MessageSquare, Users } from 'lucide-react';
 import { Avatar } from '../components/Avatar';
 import { useTrainer } from '../api/trainer';
-import { useTrainerAlerts } from '../api/alerts';
 import { useChatUnread } from '../api/chat';
 
 // Главный экран тренера: четыре крупные плитки + блок с самим тренером сверху.
 export function HomePage() {
   const navigate = useNavigate();
   const { data: trainer } = useTrainer();
-  const { data: alerts = [] } = useTrainerAlerts();
   const { data: unread } = useChatUnread('trainer');
-  const alertsBadge = alerts.length;
   const chatBadge = unread?.unread ?? 0;
-  const hasDanger = alerts.some((a) => a.severity === 'danger');
 
   return (
     <div className="flex h-full flex-col">
@@ -43,8 +39,6 @@ export function HomePage() {
             icon={Users}
             label="Клиенты"
             sub="контакты и пакеты"
-            badge={alertsBadge}
-            badgeTone={hasDanger ? 'danger' : 'warn'}
             onClick={() => navigate('/trainer/clients')}
           />
           <Tile

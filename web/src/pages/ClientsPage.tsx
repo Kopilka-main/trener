@@ -1,8 +1,7 @@
 import { useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AlertTriangle, ChevronDown, ChevronRight, ChevronUp, Plus, Search } from 'lucide-react';
+import { ChevronRight, Plus, Search } from 'lucide-react';
 import { useClients } from '../api/clients';
-import { useTrainerAlerts, type TrainerAlert } from '../api/alerts';
 import { Avatar } from '../components/Avatar';
 import { AlphaIndex } from '../components/AlphaIndex';
 import { appBase } from '../lib/routes';
@@ -14,7 +13,6 @@ export function ClientsPage() {
   const navigate = useNavigate();
   const [query, setQuery] = useState('');
   const { data: clients = [], isLoading } = useClients(query);
-  const { data: alerts = [] } = useTrainerAlerts();
   const listRef = useRef<HTMLDivElement>(null);
 
   const grouped = useMemo(() => {
@@ -38,12 +36,6 @@ export function ClientsPage() {
 
   return (
     <div className="flex h-full flex-col">
-      {alerts.length > 0 && (
-        <AlertsBanner
-          alerts={alerts}
-          onPick={(a) => navigate(`${appBase()}/clients/${a.clientId}`)}
-        />
-      )}
       <header className="px-5 pt-3 pb-3">
         <div className="flex items-start justify-between">
           <h1 className="text-[34px] font-bold leading-tight">Клиенты</h1>
@@ -97,56 +89,6 @@ export function ClientsPage() {
   );
 }
 
-function AlertsBanner({ alerts, onPick }: { alerts: TrainerAlert[]; onPick: (a: TrainerAlert) => void }) {
-  const [open, setOpen] = useState(false);
-  const danger = alerts.some((a) => a.severity === 'danger');
-  const color = danger ? 'var(--color-danger)' : '#d9912b';
-  const label = danger
-    ? `У ${alerts.length} ${plural(alerts.length, 'клиента', 'клиентов', 'клиентов')} проблема с оплатой`
-    : `У ${alerts.length} ${plural(alerts.length, 'клиента', 'клиентов', 'клиентов')} скоро закончится пакет`;
-  return (
-    <div className="mx-4 mt-2 overflow-hidden rounded-2xl bg-[var(--color-card)]">
-      <button
-        onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-center gap-2 px-3 py-2.5 text-left"
-      >
-        <AlertTriangle size={16} style={{ color }} className="shrink-0" />
-        <span className="flex-1 text-[13px] font-medium">{label}</span>
-        {open ? <ChevronUp size={16} className="shrink-0" /> : <ChevronDown size={16} className="shrink-0" />}
-      </button>
-      {open && (
-        <ul className="border-t border-[var(--color-line)]">
-          {alerts.map((a) => (
-            <li key={`${a.type}-${a.clientId}`} className="border-b border-[var(--color-line)] last:border-b-0">
-              <button
-                onClick={() => onPick(a)}
-                className="flex w-full items-center gap-2 px-3 py-2 text-left active:bg-black/5"
-              >
-                <span
-                  className="h-2 w-2 shrink-0 rounded-full"
-                  style={{ background: a.severity === 'danger' ? 'var(--color-danger)' : '#d9912b' }}
-                />
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-[13px] font-semibold">{a.clientName}</span>
-                  <span className="block truncate text-[11px] text-[var(--color-ink-muted)]">{a.message}</span>
-                </span>
-                <ChevronRight size={14} className="shrink-0 text-[var(--color-ink-muted)]" />
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
-  );
-}
-
-function plural(n: number, one: string, few: string, many: string): string {
-  const m10 = n % 10;
-  const m100 = n % 100;
-  if (m10 === 1 && m100 !== 11) return one;
-  if (m10 >= 2 && m10 <= 4 && (m100 < 10 || m100 >= 20)) return few;
-  return many;
-}
 
 function ClientRow({ client, onOpen }: { client: Client; onOpen: () => void }) {
   const schedule = formatSchedule(client.scheduleDay, client.scheduleTime);
