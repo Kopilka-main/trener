@@ -116,6 +116,26 @@ CREATE TABLE IF NOT EXISTS sessions (
 CREATE INDEX IF NOT EXISTS idx_sessions_date ON sessions(date);
 CREATE INDEX IF NOT EXISTS idx_sessions_client ON sessions(client_id);
 
+-- Справочник залов (бухгалтерия + календарь могут ссылаться).
+CREATE TABLE IF NOT EXISTS gyms (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  monthly_rent REAL,
+  note TEXT
+);
+
+-- Расходы тренера для бухгалтерии.
+CREATE TABLE IF NOT EXISTS expenses (
+  id TEXT PRIMARY KEY,
+  category TEXT NOT NULL,                  -- 'аренда' | 'инвентарь' | 'обучение' | 'прочее' | ...
+  amount REAL NOT NULL,
+  date TEXT NOT NULL,                      -- YYYY-MM-DD
+  gym_id TEXT REFERENCES gyms(id) ON DELETE SET NULL,
+  note TEXT,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_expenses_date ON expenses(date);
+
 -- Пакеты оплаченных тренировок клиента (план/факт считается на лету).
 CREATE TABLE IF NOT EXISTS payment_packages (
   id TEXT PRIMARY KEY,

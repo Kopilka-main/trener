@@ -8,6 +8,10 @@ import { clientWorkoutsRouter } from './routes/client-workouts.js';
 import { sessionsRouter } from './routes/sessions.js';
 import { trainerRouter } from './routes/trainer.js';
 import { clientPackagesRouter, packagesRouter } from './routes/packages.js';
+import { alertsRouter } from './routes/alerts.js';
+import { gymsRouter } from './routes/gyms.js';
+import { expensesRouter } from './routes/expenses.js';
+import { accountingRouter } from './routes/accounting.js';
 import { runSeedIfEmpty, seedSessionsIfEmpty, seedTrainerIfEmpty, ensureTrainerShareCode, ensureSchemaUpgrades, normalizeWorkouts } from './seed.js';
 
 const app = express();
@@ -25,6 +29,10 @@ app.use('/api/exercises', exercisesRouter);
 app.use('/api/workout-templates', workoutTemplatesRouter);
 app.use('/api/sessions', sessionsRouter);
 app.use('/api/trainer', trainerRouter);
+app.use('/api/trainer/alerts', alertsRouter);
+app.use('/api/gyms', gymsRouter);
+app.use('/api/expenses', expensesRouter);
+app.use('/api/accounting', accountingRouter);
 app.use('/api', clientWorkoutsRouter);
 
 app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {

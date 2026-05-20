@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Bell, ChevronRight, Instagram, LogOut, Mail, Pencil, Phone, Send, Settings, Share2 } from 'lucide-react';
+import { Bell, Building2, ChevronRight, Instagram, LogOut, Mail, Pencil, Phone, PieChart, Send, Settings, Share2 } from 'lucide-react';
 import { ScreenHeader } from '../components/ScreenHeader';
 import { Avatar } from '../components/Avatar';
 import { useConfirm } from '../components/ConfirmProvider';
@@ -115,6 +115,8 @@ export function TrainerPage() {
               )}
             </div>
           )}
+          <SettingRow icon={PieChart} label="Бухгалтерия" onClick={() => navigate('/trainer/accounting')} />
+          <SettingRow icon={Building2} label="Залы" onClick={() => navigate('/trainer/gyms')} />
           <SettingRow icon={Settings} label="Настройки приложения" />
           <SettingRow icon={Bell} label="Уведомления" last />
         </div>
@@ -144,10 +146,10 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
-function SettingRow({ icon: Icon, label, hint, last }: { icon: LucideIcon; label: string; hint?: string; last?: boolean }) {
+function SettingRow({ icon: Icon, label, hint, last, onClick }: { icon: LucideIcon; label: string; hint?: string; last?: boolean; onClick?: () => void }) {
   return (
     <button
-      onClick={() => alert('Раздел в разработке')}
+      onClick={onClick ?? (() => alert('Раздел в разработке'))}
       className={`flex w-full items-center gap-3 bg-[var(--color-card)] px-4 py-3.5 text-left ${last ? '' : 'border-b border-[var(--color-line)]'}`}
     >
       <Icon size={17} className="shrink-0 text-[var(--color-ink-muted)]" />

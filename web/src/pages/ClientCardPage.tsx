@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ChevronRight, Dumbbell, Pencil, Plus, Wallet, X } from 'lucide-react';
+import { AlertTriangle, ChevronRight, Dumbbell, Pencil, Plus, Wallet, X } from 'lucide-react';
 import { ScreenHeader } from '../components/ScreenHeader';
 import { Avatar } from '../components/Avatar';
 import { Field, TextArea, TextInput } from '../components/Field';
@@ -8,6 +8,7 @@ import { useConfirm } from '../components/ConfirmProvider';
 import { useClient, useClientBalance } from '../api/clients';
 import { useClientWorkouts } from '../api/client-workouts';
 import { useClientPackages, useCreatePackage, useDeletePackage } from '../api/packages';
+import { useTrainerAlerts } from '../api/alerts';
 import { calcAge, formatBirth, formatDate, formatDuration } from '../lib/format';
 import { fullName } from '../lib/initials';
 import type { ClientWorkoutSummary, PaymentPackage, PaymentPackageInput } from '../api/types';
@@ -19,6 +20,8 @@ export function ClientCardPage() {
   const navigate = useNavigate();
   const { data: client } = useClient(id);
   const { data: workouts } = useClientWorkouts(id);
+  const { data: alerts = [] } = useTrainerAlerts();
+  const myAlert = alerts.find((a) => a.clientId === id);
 
   if (!client) return null;
 
@@ -86,6 +89,19 @@ export function ClientCardPage() {
           </span>
           <ChevronRight size={18} className="shrink-0" />
         </button>
+
+        {myAlert && (
+          <div
+            className="flex items-center gap-2 rounded-2xl px-3 py-2.5 text-[13px] font-medium"
+            style={{
+              background: myAlert.severity === 'danger' ? 'rgba(200,57,44,0.10)' : 'rgba(217,145,43,0.12)',
+              color: myAlert.severity === 'danger' ? 'var(--color-danger)' : '#9a6118',
+            }}
+          >
+            <AlertTriangle size={16} className="shrink-0" />
+            <span>{myAlert.message}</span>
+          </div>
+        )}
 
         <Section title="Тренировки и оплата">
           <BalanceCard clientId={id} />

@@ -30,6 +30,7 @@ export function backTarget(pathname: string, search = ''): string {
   const sectionHome = isClient ? `${CLIENT_BASE}/workouts` : `${TRAINER_BASE}/clients`;
 
   if (sub === 'exercises' || sub === 'templates') return `${base}/exercises`;
+  if (sub === 'accounting' || sub === 'gyms') return `${TRAINER_BASE}/profile`;
   if (sub === 'profile') return segs[2] === 'edit' ? `${base}/profile` : sectionHome;
   if (sub === 'calendar') {
     const clientId = new URLSearchParams(search).get('clientId');

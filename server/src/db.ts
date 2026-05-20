@@ -111,6 +111,23 @@ export type SessionRow = {
   created_at: string;
 };
 
+export type GymRow = {
+  id: string;
+  name: string;
+  monthly_rent: number | null;
+  note: string | null;
+};
+
+export type ExpenseRow = {
+  id: string;
+  category: string;
+  amount: number;
+  date: string;
+  gym_id: string | null;
+  note: string | null;
+  created_at: string;
+};
+
 export type PaymentPackageRow = {
   id: string;
   client_id: string;

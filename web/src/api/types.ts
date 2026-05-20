@@ -148,6 +148,55 @@ export type SessionInput = {
   note?: string | null;
 };
 
+export type Gym = {
+  id: string;
+  name: string;
+  monthlyRent: number | null;
+  note: string | null;
+};
+
+export type GymInput = {
+  name: string;
+  monthlyRent?: number | null;
+  note?: string | null;
+};
+
+export type Expense = {
+  id: string;
+  category: string;
+  amount: number;
+  date: string;
+  gymId: string | null;
+  note: string | null;
+  createdAt: string;
+};
+
+export type ExpenseInput = {
+  category: string;
+  amount: number;
+  date: string;
+  gymId?: string | null;
+  note?: string | null;
+};
+
+export type IncomeItem = {
+  id: string;
+  clientId: string;
+  clientName: string;
+  lessonsPaid: number;
+  totalPaid: number;
+  createdAt: string;
+  status: string;
+};
+
+export type AccountingSummary = {
+  month: string;
+  income: number;
+  expenses: number;
+  profit: number;
+  topClients: Array<{ clientId: string; clientName: string; total: number }>;
+};
+
 export type PaymentPackageStatus = 'active' | 'closed' | 'cancelled';
 
 export type PaymentPackage = {

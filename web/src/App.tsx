@@ -14,6 +14,8 @@ import { WorkoutSummaryPage } from './pages/WorkoutSummaryPage';
 import { CalendarPage } from './pages/CalendarPage';
 import { TrainerPage } from './pages/TrainerPage';
 import { TrainerEditPage } from './pages/TrainerEditPage';
+import { AccountingPage } from './pages/AccountingPage';
+import { GymsPage } from './pages/GymsPage';
 import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
 import { DevInspector } from './components/DevInspector';
@@ -87,6 +89,8 @@ export function App() {
             <Route path={`${TRAINER_BASE}/calendar`} element={<CalendarPage />} />
             <Route path={`${TRAINER_BASE}/profile`} element={<TrainerPage />} />
             <Route path={`${TRAINER_BASE}/profile/edit`} element={<TrainerEditPage />} />
+            <Route path={`${TRAINER_BASE}/accounting`} element={<AccountingPage />} />
+            <Route path={`${TRAINER_BASE}/gyms`} element={<GymsPage />} />
             <Route path="*" element={<Navigate to={authed ? home : `${TRAINER_BASE}/login`} replace />} />
           </Routes>
         )}
