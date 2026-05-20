@@ -16,14 +16,25 @@ import { TrainerPage } from './pages/TrainerPage';
 import { TrainerEditPage } from './pages/TrainerEditPage';
 import { AccountingPage } from './pages/AccountingPage';
 import { GymsPage } from './pages/GymsPage';
+import { ChatListPage } from './pages/ChatListPage';
+import { ChatPage } from './pages/ChatPage';
 import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
 import { DevInspector } from './components/DevInspector';
 import { CLIENT_BASE, TRAINER_BASE } from './lib/routes';
 
 // Адреса, на которых виден нижний таб-бар (точное совпадение).
-const TRAINER_TAB_PATHS = [`${TRAINER_BASE}/clients`, `${TRAINER_BASE}/exercises`, `${TRAINER_BASE}/calendar`];
-const CLIENT_TAB_PATHS = [`${CLIENT_BASE}/workouts`, `${CLIENT_BASE}/exercises`];
+const TRAINER_TAB_PATHS = [
+  `${TRAINER_BASE}/clients`,
+  `${TRAINER_BASE}/exercises`,
+  `${TRAINER_BASE}/calendar`,
+  `${TRAINER_BASE}/chat`,
+];
+const CLIENT_TAB_PATHS = [
+  `${CLIENT_BASE}/workouts`,
+  `${CLIENT_BASE}/exercises`,
+  `${CLIENT_BASE}/chat`,
+];
 
 export function App() {
   const location = useLocation();
@@ -67,6 +78,7 @@ export function App() {
             <Route path={`${CLIENT_BASE}/templates/new`} element={<WorkoutBuilderPage mode="create" />} />
             <Route path={`${CLIENT_BASE}/templates/:id/edit`} element={<WorkoutBuilderPage mode="edit" />} />
             <Route path={`${CLIENT_BASE}/calendar`} element={<CalendarPage />} />
+            <Route path={`${CLIENT_BASE}/chat`} element={<ChatPage />} />
             <Route path="*" element={<Navigate to={home} replace />} />
           </Routes>
         ) : (
@@ -91,6 +103,8 @@ export function App() {
             <Route path={`${TRAINER_BASE}/profile/edit`} element={<TrainerEditPage />} />
             <Route path={`${TRAINER_BASE}/accounting`} element={<AccountingPage />} />
             <Route path={`${TRAINER_BASE}/gyms`} element={<GymsPage />} />
+            <Route path={`${TRAINER_BASE}/chat`} element={<ChatListPage />} />
+            <Route path={`${TRAINER_BASE}/chat/:clientId`} element={<ChatPage />} />
             <Route path="*" element={<Navigate to={authed ? home : `${TRAINER_BASE}/login`} replace />} />
           </Routes>
         )}

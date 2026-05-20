@@ -111,6 +111,21 @@ export type SessionRow = {
   created_at: string;
 };
 
+export type ConversationRow = {
+  id: string;
+  client_id: string;
+  trainer_last_read_at: string | null;
+  client_last_read_at: string | null;
+};
+
+export type MessageRow = {
+  id: string;
+  conversation_id: string;
+  sender_role: 'trainer' | 'client';
+  body: string;
+  created_at: string;
+};
+
 export type GymRow = {
   id: string;
   name: string;

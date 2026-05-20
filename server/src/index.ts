@@ -13,6 +13,7 @@ import { gymsRouter } from './routes/gyms.js';
 import { expensesRouter } from './routes/expenses.js';
 import { accountingRouter } from './routes/accounting.js';
 import { clientStatsRouter } from './routes/client-stats.js';
+import { chatRouter } from './routes/chat.js';
 import { runSeedIfEmpty, seedSessionsIfEmpty, seedTrainerIfEmpty, ensureTrainerShareCode, ensureSchemaUpgrades, normalizeWorkouts } from './seed.js';
 
 const app = express();
@@ -35,6 +36,7 @@ app.use('/api/trainer/alerts', alertsRouter);
 app.use('/api/gyms', gymsRouter);
 app.use('/api/expenses', expensesRouter);
 app.use('/api/accounting', accountingRouter);
+app.use('/api/conversations', chatRouter);
 app.use('/api', clientWorkoutsRouter);
 
 app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {

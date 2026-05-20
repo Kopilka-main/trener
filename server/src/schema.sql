@@ -151,6 +151,24 @@ CREATE TABLE IF NOT EXISTS payment_packages (
 );
 CREATE INDEX IF NOT EXISTS idx_packages_client ON payment_packages(client_id, status);
 
+-- Чат: 1 диалог на клиента. Для масштабирования на 40 000 пользователей
+-- потребуется Postgres + WebSocket + реальная авторизация (сейчас MVP polling).
+CREATE TABLE IF NOT EXISTS conversations (
+  id TEXT PRIMARY KEY,
+  client_id TEXT NOT NULL UNIQUE REFERENCES clients(id) ON DELETE CASCADE,
+  trainer_last_read_at TEXT,
+  client_last_read_at TEXT
+);
+
+CREATE TABLE IF NOT EXISTS messages (
+  id TEXT PRIMARY KEY,
+  conversation_id TEXT NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
+  sender_role TEXT NOT NULL CHECK (sender_role IN ('trainer', 'client')),
+  body TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_messages_conv ON messages(conversation_id, created_at);
+
 -- Профиль тренера (одна запись на приложение).
 CREATE TABLE IF NOT EXISTS trainer (
   id TEXT PRIMARY KEY,

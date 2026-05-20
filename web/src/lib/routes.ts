@@ -32,6 +32,11 @@ export function backTarget(pathname: string, search = ''): string {
   if (sub === 'exercises' || sub === 'templates') return `${base}/exercises`;
   if (sub === 'accounting' || sub === 'gyms') return `${TRAINER_BASE}/profile`;
   if (sub === 'profile') return segs[2] === 'edit' ? `${base}/profile` : sectionHome;
+  if (sub === 'chat') {
+    // Диалог тренера → список диалогов; список → home; клиент → home.
+    if (!isClient && segs[2]) return `${TRAINER_BASE}/chat`;
+    return sectionHome;
+  }
   if (sub === 'calendar') {
     const clientId = new URLSearchParams(search).get('clientId');
     // Календарь, открытый из карточки клиента, возвращает в карточку.
