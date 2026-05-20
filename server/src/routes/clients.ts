@@ -166,9 +166,11 @@ const balanceScheduledStmt = db.prepare<[string], { n: number }>(
   `SELECT COUNT(*) AS n FROM sessions
    WHERE client_id = ? AND status IN ('planned', 'completed')`
 );
-const balanceCompletedApprovedStmt = db.prepare<[string], { n: number }>(
+// «Проведено» = тренер отметил status='completed'. Согласование клиентом —
+// отдельная ось (галочки в календаре), на биллинг не влияет.
+const balanceCompletedStmt = db.prepare<[string], { n: number }>(
   `SELECT COUNT(*) AS n FROM sessions
-   WHERE client_id = ? AND status = 'completed' AND approval = 'approved'`
+   WHERE client_id = ? AND status = 'completed'`
 );
 const balanceApprovedTotalStmt = db.prepare<[string], { n: number }>(
   `SELECT COUNT(*) AS n FROM sessions
@@ -194,7 +196,7 @@ clientsRouter.get(
     requireRow(getStmt.get(req.params.id), 'Client');
     const paid = balancePaidStmt.get(req.params.id)?.paid ?? 0;
     const scheduled = balanceScheduledStmt.get(req.params.id)?.n ?? 0;
-    const completedApproved = balanceCompletedApprovedStmt.get(req.params.id)?.n ?? 0;
+    const completed = balanceCompletedStmt.get(req.params.id)?.n ?? 0;
     const approvedTotal = balanceApprovedTotalStmt.get(req.params.id)?.n ?? 0;
     const unapproved = balanceUnapprovedStmt.get(req.params.id)?.n ?? 0;
     const needsSending = balanceNeedsSendingStmt.get(req.params.id)?.n ?? 0;
@@ -203,12 +205,12 @@ clientsRouter.get(
     res.json({
       paid,
       scheduled,
-      completedApproved,
+      completed,
       approvedTotal,
       unapproved,
       needsSending,
       upcomingPlanned,
-      remaining: paid - completedApproved,
+      remaining: paid - completed,
     });
   })
 );

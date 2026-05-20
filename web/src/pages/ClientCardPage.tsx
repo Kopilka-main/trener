@@ -216,7 +216,7 @@ function BalanceCard({ clientId }: { clientId: string }) {
     <div className="rounded-2xl bg-[var(--color-card)] p-4">
       <div className="grid grid-cols-2 gap-3 text-center">
         <div>
-          <div className="text-[28px] font-bold tabular-nums leading-none">{balance.completedApproved}</div>
+          <div className="text-[28px] font-bold tabular-nums leading-none">{balance.completed}</div>
           <div className="mt-1 text-[11px] text-[var(--color-ink-muted)]">проведено</div>
         </div>
         <div>

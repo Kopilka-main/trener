@@ -227,12 +227,12 @@ export type PaymentPackageInput = {
 export type ClientBalance = {
   paid: number;
   scheduled: number;             // всего назначено в календаре (planned + completed)
-  completedApproved: number;     // проведено и согласовано
-  approvedTotal: number;         // всего согласовано (planned + completed)
+  completed: number;             // тренер отметил status='completed' — факт проведения
+  approvedTotal: number;         // всего согласовано клиентом (planned + completed)
   unapproved: number;            // запланированы и НЕ согласованы (любые: none + pending)
   needsSending: number;          // ещё не отправлены клиенту вовсе (approval='none')
   upcomingPlanned: number;       // только будущие запланированные (date ≥ сегодня)
-  remaining: number;             // paid − completedApproved
+  remaining: number;             // paid − completed
 };
 
 export type Trainer = {

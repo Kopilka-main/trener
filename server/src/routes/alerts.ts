@@ -21,7 +21,7 @@ const balancesStmt = db.prepare<[], Row>(`
     COALESCE((SELECT SUM(lessons_paid) FROM payment_packages
               WHERE client_id = c.id AND status = 'active'), 0) AS paid,
     (SELECT COUNT(*) FROM sessions
-     WHERE client_id = c.id AND status = 'completed' AND approval = 'approved') AS used
+     WHERE client_id = c.id AND status = 'completed') AS used
   FROM clients c
 `);
 
