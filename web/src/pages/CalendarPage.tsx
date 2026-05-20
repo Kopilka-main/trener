@@ -4,7 +4,7 @@ import { Check, CheckCheck, ChevronLeft, ChevronRight, CircleDashed, Plus } from
 import { ScreenHeader } from '../components/ScreenHeader';
 import { BottomSheet } from '../components/BottomSheet';
 import { useConfirm } from '../components/ConfirmProvider';
-import { useSessions, useCreateSession, useUpdateSession, useDeleteSession } from '../api/sessions';
+import { useSessions, useCreateSession, useUpdateSession, useDeleteSession, useSessionPaymentStatus } from '../api/sessions';
 import { useClient, useClients } from '../api/clients';
 import { useClientWorkouts } from '../api/client-workouts';
 import { useWorkoutTemplates } from '../api/workout-templates';
@@ -64,6 +64,7 @@ export function CalendarPage() {
   }, [view, anchor]);
 
   const { data: sessions = [] } = useSessions(range.from, range.to, clientId);
+  const { data: paidMap = {} } = useSessionPaymentStatus(range.from, range.to);
 
   const visible = useMemo(() => {
     if (view === 'day') return sessions.filter((s) => s.date === toISODate(anchor));
@@ -165,14 +166,14 @@ export function CalendarPage() {
             />
           </div>
           <div className="px-5 pb-1 text-[12px] text-[var(--color-ink-muted)]">{subLabel}</div>
-          {view === 'day' && <ApprovalLegend />}
-          {view === 'week' && <WeekStripeLegend />}
+          {(view === 'day' || view === 'week') && <ApprovalLegend />}
 
           <div className="flex-1 overflow-y-auto pb-6">
             {view === 'day' && (
               <DayView
                 date={anchor}
                 sessions={sessions}
+                paidMap={paidMap}
                 onPick={setEditing}
                 onSlot={(hour) => openCreateAt(anchor, hour)}
               />
@@ -181,6 +182,7 @@ export function CalendarPage() {
               <WeekView
                 dates={weekDates(anchor)}
                 sessions={sessions}
+                paidMap={paidMap}
                 onPick={setEditing}
                 onPickDay={(d) => { setAnchor(d); setView('day'); }}
                 onSlot={openCreateAt}
@@ -190,6 +192,8 @@ export function CalendarPage() {
               <MonthView
                 anchor={anchor}
                 sessions={sessions}
+                paidMap={paidMap}
+                singleClient={!!clientId}
                 onPickDay={(d) => { setAnchor(d); setView('day'); }}
               />
             )}
@@ -339,33 +343,38 @@ function ApprovalLegend() {
   );
 }
 
-// Цвет полоски занятия в недельном виде: зелёная — согласовано, красная — нет.
-function approvalStripeColor(approval: SessionApproval): string {
-  return approval === 'approved' ? 'var(--color-success)' : 'var(--color-danger)';
+// Фоновые цвета занятия по статусу оплаты — лёгкие подсветки.
+const PAID_BG = 'rgba(46,125,79,0.10)';      // зелёный (оплачено)
+const UNPAID_BG = 'rgba(200,57,44,0.08)';    // красный (не оплачено)
+const PAID_BORDER = 'rgba(46,125,79,0.45)';
+const UNPAID_BORDER = 'rgba(200,57,44,0.35)';
+
+function paymentBg(isPaid: boolean) {
+  return isPaid ? PAID_BG : UNPAID_BG;
+}
+function paymentBorder(isPaid: boolean) {
+  return isPaid ? PAID_BORDER : UNPAID_BORDER;
 }
 
-// Легенда цветных полосок — для недельного вида.
-function WeekStripeLegend() {
-  return (
-    <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 px-5 pb-1 text-[10px] text-[var(--color-ink-muted)]">
-      <span className="flex items-center gap-1">
-        <span className="h-2.5 w-1.5 rounded-sm" style={{ background: 'var(--color-success)' }} /> согласовано
-      </span>
-      <span className="flex items-center gap-1">
-        <span className="h-2.5 w-1.5 rounded-sm" style={{ background: 'var(--color-danger)' }} /> не согласовано
-      </span>
-    </div>
-  );
+// «10:00» + 45 мин → «10:45»; помогает в подписях занятий «начало-конец».
+function endTime(startTime: string, durationMin: number): string {
+  const [h, m] = startTime.split(':').map(Number);
+  const total = h * 60 + m + durationMin;
+  const eh = Math.floor(total / 60) % 24;
+  const em = total % 60;
+  return `${String(eh).padStart(2, '0')}:${String(em).padStart(2, '0')}`;
 }
 
 function DayView({
   date,
   sessions,
+  paidMap,
   onPick,
   onSlot,
 }: {
   date: Date;
   sessions: Session[];
+  paidMap: Record<string, boolean>;
   onPick: (s: Session) => void;
   onSlot: (hour: number) => void;
 }) {
@@ -413,20 +422,31 @@ function DayView({
         {items.map((s) => {
           const top = (timeToMin(s.startTime) - CAL_START_HOUR * 60) / 60 * HOUR_H;
           const height = Math.max((s.durationMin / 60) * HOUR_H - 4, 36);
+          const isPaid = paidMap[s.id] === true;
           return (
             <button
               key={s.id}
               onClick={() => onPick(s)}
-              className="absolute left-1.5 right-1.5 z-10 overflow-hidden rounded-xl border-l-[4px] bg-[var(--color-card)] px-2.5 py-1.5 text-left shadow-sm"
-              style={{ top, height, borderLeftColor: approvalStripeColor(s.approval), opacity: s.status === 'completed' ? 0.5 : 1 }}
+              className="absolute left-1.5 right-1.5 z-10 overflow-hidden rounded-xl border px-2.5 py-1.5 text-left shadow-sm"
+              style={{
+                top,
+                height,
+                background: paymentBg(isPaid),
+                borderColor: paymentBorder(isPaid),
+                opacity: s.status === 'completed' ? 0.5 : 1,
+              }}
             >
               <div className="flex items-center gap-1.5">
-                <span className="shrink-0 text-[12px] font-bold tabular-nums">{s.startTime}</span>
-                <span className="min-w-0 flex-1 truncate text-[12px] font-semibold">{fullName(s.clientFirstName, s.clientLastName)}</span>
+                <span className="shrink-0 text-[12px] font-bold tabular-nums">
+                  {s.startTime}–{endTime(s.startTime, s.durationMin)}
+                </span>
+                <span className="min-w-0 flex-1 truncate text-[12px] font-semibold">
+                  {fullName(s.clientFirstName, s.clientLastName)}
+                </span>
                 <ApprovalBadge session={s} />
               </div>
               <div className="truncate text-[11px] text-[var(--color-ink-muted)]">
-                {[s.title, s.location, `${s.durationMin} мин`].filter(Boolean).join(' · ')}
+                {[s.title, s.location].filter(Boolean).join(' · ')}
               </div>
             </button>
           );
@@ -439,12 +459,14 @@ function DayView({
 function WeekView({
   dates,
   sessions,
+  paidMap,
   onPick,
   onPickDay,
   onSlot,
 }: {
   dates: Date[];
   sessions: Session[];
+  paidMap: Record<string, boolean>;
   onPick: (s: Session) => void;
   onPickDay: (d: Date) => void;
   onSlot: (date: Date, hour: number) => void;
@@ -510,15 +532,26 @@ function WeekView({
                 {items.map((s) => {
                   const top = (timeToMin(s.startTime) - CAL_START_HOUR * 60) / 60 * HOUR_H;
                   const height = Math.max((s.durationMin / 60) * HOUR_H - 2, 24);
+                  const isPaid = paidMap[s.id] === true;
                   return (
                     <button
                       key={s.id}
                       onClick={() => onPick(s)}
-                      className="absolute inset-x-[2px] z-10 overflow-hidden rounded-md border-l-[3px] bg-[var(--color-card)] px-1 py-0.5 text-left"
-                      style={{ top, height, borderLeftColor: approvalStripeColor(s.approval), opacity: s.status === 'completed' ? 0.5 : 1 }}
+                      className="absolute inset-x-[2px] z-10 overflow-hidden rounded-md border px-1 py-0.5 text-left"
+                      style={{
+                        top,
+                        height,
+                        background: paymentBg(isPaid),
+                        borderColor: paymentBorder(isPaid),
+                        opacity: s.status === 'completed' ? 0.5 : 1,
+                      }}
                     >
-                      <div className="truncate text-[9px] font-bold leading-tight tabular-nums">{s.startTime}</div>
-                      <div className="truncate text-[9px] leading-tight">{s.clientFirstName}</div>
+                      <div className="flex items-center gap-0.5">
+                        <span className="min-w-0 flex-1 truncate text-[9px] font-bold leading-tight tabular-nums">
+                          {s.startTime}–{endTime(s.startTime, s.durationMin)}
+                        </span>
+                        <ApprovalBadge session={s} size={10} />
+                      </div>
                     </button>
                   );
                 })}
@@ -543,10 +576,14 @@ function loadColor(n: number): string {
 function MonthView({
   anchor,
   sessions,
+  paidMap,
+  singleClient,
   onPickDay,
 }: {
   anchor: Date;
   sessions: Session[];
+  paidMap: Record<string, boolean>;
+  singleClient: boolean;          // фильтр по конкретному клиенту → показываем статус, не счётчик
   onPickDay: (d: Date) => void;
 }) {
   const cells = monthGrid(anchor);
@@ -554,6 +591,12 @@ function MonthView({
   const now = new Date();
   const countByDate = new Map<string, number>();
   for (const s of sessions) countByDate.set(s.date, (countByDate.get(s.date) ?? 0) + 1);
+  // Для singleClient: первый session дня (для значка согласования и оплаты).
+  const firstByDate = new Map<string, Session>();
+  if (singleClient) {
+    const sorted = [...sessions].sort((a, b) => a.date.localeCompare(b.date) || a.startTime.localeCompare(b.startTime));
+    for (const s of sorted) if (!firstByDate.has(s.date)) firstByDate.set(s.date, s);
+  }
   const monthTotal = sessions.filter((s) => parseISO(s.date).getMonth() === month).length;
 
   return (
@@ -569,22 +612,31 @@ function MonthView({
           const n = countByDate.get(iso) ?? 0;
           const inMonth = d.getMonth() === month;
           const today = sameDay(d, now);
+          const first = singleClient ? firstByDate.get(iso) : undefined;
+          const isPaid = first ? paidMap[first.id] === true : false;
+          // В режиме одного клиента — фон дня по оплате (если есть занятие).
+          const dayBg = singleClient && first ? paymentBg(isPaid) : inMonth ? 'var(--color-card)' : 'transparent';
           return (
             <button
               key={iso}
               onClick={() => onPickDay(d)}
-              className={`flex aspect-square flex-col items-center justify-center gap-0.5 rounded-xl ${inMonth ? 'bg-[var(--color-card)]' : ''} ${today ? 'ring-2 ring-ink' : ''}`}
+              className={`flex aspect-square flex-col items-center justify-center gap-0.5 rounded-xl ${today ? 'ring-2 ring-ink' : ''}`}
+              style={{ background: dayBg }}
             >
               <span className={`text-[12px] font-semibold tabular-nums ${inMonth ? '' : 'text-[var(--color-ink-muted)] opacity-50'}`}>
                 {d.getDate()}
               </span>
-              {n > 0 && (
-                <span
-                  className="flex h-4 min-w-[16px] items-center justify-center rounded-full px-1 text-[10px] font-bold tabular-nums"
-                  style={{ backgroundColor: loadColor(n), color: n >= 3 ? '#ffffff' : '#1a1a1a' }}
-                >
-                  {n}
-                </span>
+              {singleClient ? (
+                first ? <ApprovalBadge session={first} size={13} /> : null
+              ) : (
+                n > 0 && (
+                  <span
+                    className="flex h-4 min-w-[16px] items-center justify-center rounded-full px-1 text-[10px] font-bold tabular-nums"
+                    style={{ backgroundColor: loadColor(n), color: n >= 3 ? '#ffffff' : '#1a1a1a' }}
+                  >
+                    {n}
+                  </span>
+                )
               )}
             </button>
           );

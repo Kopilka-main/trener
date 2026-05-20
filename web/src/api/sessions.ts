@@ -38,6 +38,14 @@ export function useDeleteSession() {
   });
 }
 
+// Карта {sessionId → true|false}: оплачена ли тренировка из активных пакетов клиента.
+export function useSessionPaymentStatus(from: string, to: string) {
+  return useQuery({
+    queryKey: ['sessions-paid', from, to],
+    queryFn: () => api.get<Record<string, boolean>>(`/api/sessions/payment-status?from=${from}&to=${to}`),
+  });
+}
+
 // Имитация «получения» уведомления клиентом — ставит deliveredAt.
 export function useDeliverSession() {
   const qc = useQueryClient();
