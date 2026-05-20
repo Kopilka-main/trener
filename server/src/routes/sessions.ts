@@ -97,6 +97,41 @@ sessionsRouter.get(
   })
 );
 
+// ВАЖНО: статические маршруты («/payment-status») должны быть ПЕРЕД '/:id',
+// иначе Express примет «payment-status» за id сессии.
+type PsRow = { id: string; client_id: string };
+const psSessionsStmt = db.prepare<[string, string], PsRow>(`
+  SELECT id, client_id FROM sessions
+  WHERE date >= ? AND date <= ? AND status IN ('planned', 'completed')
+  ORDER BY client_id, date, start_time
+`);
+const psPaidStmt = db.prepare<[], { client_id: string; paid: number }>(`
+  SELECT client_id, COALESCE(SUM(lessons_paid), 0) AS paid
+  FROM payment_packages WHERE status = 'active' GROUP BY client_id
+`);
+
+sessionsRouter.get(
+  '/payment-status',
+  asyncHandler((req, res) => {
+    const from = String(req.query.from ?? '0000-01-01');
+    const to = String(req.query.to ?? '9999-12-31');
+    const rows = psSessionsStmt.all(from, to);
+    const budget = new Map<string, number>();
+    for (const r of psPaidStmt.all()) budget.set(r.client_id, r.paid);
+    const result: Record<string, boolean> = {};
+    for (const s of rows) {
+      const b = budget.get(s.client_id) ?? 0;
+      if (b > 0) {
+        result[s.id] = true;
+        budget.set(s.client_id, b - 1);
+      } else {
+        result[s.id] = false;
+      }
+    }
+    res.json(result);
+  })
+);
+
 sessionsRouter.get(
   '/:id',
   asyncHandler((req, res) => {
@@ -158,42 +193,6 @@ sessionsRouter.delete(
     const result = deleteStmt.run(req.params.id);
     if (result.changes === 0) throw new HttpError(404, 'Session not found');
     res.status(204).send();
-  })
-);
-
-// GET /payment-status — для каждой sessions в диапазоне определить, оплачена ли она.
-// Алгоритм: на клиента бюджет = SUM(lessons_paid) активных пакетов; занятия клиента
-// (status IN planned|completed) сортируются по времени, и бюджет «съедают» первые.
-type PsRow = { id: string; client_id: string };
-const psSessionsStmt = db.prepare<[string, string], PsRow>(`
-  SELECT id, client_id FROM sessions
-  WHERE date >= ? AND date <= ? AND status IN ('planned', 'completed')
-  ORDER BY client_id, date, start_time
-`);
-const psPaidStmt = db.prepare<[], { client_id: string; paid: number }>(`
-  SELECT client_id, COALESCE(SUM(lessons_paid), 0) AS paid
-  FROM payment_packages WHERE status = 'active' GROUP BY client_id
-`);
-
-sessionsRouter.get(
-  '/payment-status',
-  asyncHandler((req, res) => {
-    const from = String(req.query.from ?? '0000-01-01');
-    const to = String(req.query.to ?? '9999-12-31');
-    const rows = psSessionsStmt.all(from, to);
-    const budget = new Map<string, number>();
-    for (const r of psPaidStmt.all()) budget.set(r.client_id, r.paid);
-    const result: Record<string, boolean> = {};
-    for (const s of rows) {
-      const b = budget.get(s.client_id) ?? 0;
-      if (b > 0) {
-        result[s.id] = true;
-        budget.set(s.client_id, b - 1);
-      } else {
-        result[s.id] = false;
-      }
-    }
-    res.json(result);
   })
 );
 
