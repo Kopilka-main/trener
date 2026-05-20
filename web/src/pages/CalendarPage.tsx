@@ -112,7 +112,7 @@ export function CalendarPage() {
   return (
     <div className="flex h-full flex-col">
       <ScreenHeader
-        title="Календарь"
+        title={clientId && filterClient ? `Календарь · ${filterClient.firstName} ${filterClient.lastName}` : 'Календарь'}
         back
         right={
           <button
@@ -124,12 +124,6 @@ export function CalendarPage() {
           </button>
         }
       />
-
-      {clientId && !showForm && (
-        <div className="px-5 pt-1 pb-1 text-[12px] text-[var(--color-ink-muted)]">
-          Занятия клиента: {filterClient ? fullName(filterClient.firstName, filterClient.lastName) : ''}
-        </div>
-      )}
 
       {showForm ? (
         <div className="flex-1 overflow-y-auto">
@@ -642,20 +636,22 @@ function MonthView({
           );
         })}
       </div>
-      <div className="mt-3 flex items-center justify-center gap-1.5 text-[10px] text-[var(--color-ink-muted)]">
-        <span>нагрузка</span>
-        {[1, 2, 3, 4, 5].map((n) => (
-          <span
-            key={n}
-            className="flex h-4 min-w-[16px] items-center justify-center rounded-full px-1"
-            style={{ backgroundColor: loadColor(n), color: n >= 3 ? '#ffffff' : '#1a1a1a' }}
-          >
-            {n}
-            {n === 5 ? '+' : ''}
-          </span>
-        ))}
-        <span className="ml-2">· {monthTotal} за месяц</span>
-      </div>
+      {!singleClient && (
+        <div className="mt-3 flex items-center justify-center gap-1.5 text-[10px] text-[var(--color-ink-muted)]">
+          <span>нагрузка</span>
+          {[1, 2, 3, 4, 5].map((n) => (
+            <span
+              key={n}
+              className="flex h-4 min-w-[16px] items-center justify-center rounded-full px-1"
+              style={{ backgroundColor: loadColor(n), color: n >= 3 ? '#ffffff' : '#1a1a1a' }}
+            >
+              {n}
+              {n === 5 ? '+' : ''}
+            </span>
+          ))}
+          <span className="ml-2">· {monthTotal} за месяц</span>
+        </div>
+      )}
     </div>
   );
 }
