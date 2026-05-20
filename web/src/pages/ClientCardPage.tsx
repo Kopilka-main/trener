@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { AlertTriangle, ChevronRight, Dumbbell, Pencil, Plus, Wallet, X } from 'lucide-react';
+import { AlertTriangle, BarChart3, ChevronDown, ChevronRight, ChevronUp, Dumbbell, Pencil, Plus, Trophy, Wallet, X } from 'lucide-react';
 import { ScreenHeader } from '../components/ScreenHeader';
 import { Avatar } from '../components/Avatar';
 import { Field, TextArea, TextInput } from '../components/Field';
@@ -9,6 +9,7 @@ import { useClient, useClientBalance } from '../api/clients';
 import { useClientWorkouts } from '../api/client-workouts';
 import { useClientPackages, useCreatePackage, useDeletePackage } from '../api/packages';
 import { useTrainerAlerts } from '../api/alerts';
+import { useClientStats, type ClientStats } from '../api/client-stats';
 import { calcAge, formatBirth, formatDate, formatDuration } from '../lib/format';
 import { fullName } from '../lib/initials';
 import type { ClientWorkoutSummary, PaymentPackage, PaymentPackageInput } from '../api/types';
@@ -149,6 +150,8 @@ export function ClientCardPage() {
             </ul>
           </Section>
         )}
+
+        <StatsSection clientId={id} />
 
         <button
           onClick={() => navigate(`/trainer/clients/${id}/edit`)}
@@ -393,6 +396,150 @@ function PackageForm({ clientId, onClose }: { clientId: string; onClose: () => v
       </button>
     </div>
   );
+}
+
+// ─── Статистика ─────────────────────────────────────────────────────────────
+
+function StatsSection({ clientId }: { clientId: string }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <section className="space-y-2">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="flex w-full items-center gap-2 px-1 text-[11px] font-semibold uppercase tracking-wider text-[var(--color-ink-muted)]"
+      >
+        <BarChart3 size={12} />
+        <span>Статистика</span>
+        <span className="ml-auto">{open ? <ChevronUp size={14} /> : <ChevronDown size={14} />}</span>
+      </button>
+      {open && <StatsBody clientId={clientId} />}
+    </section>
+  );
+}
+
+function StatsBody({ clientId }: { clientId: string }) {
+  const { data: stats } = useClientStats(clientId);
+  if (!stats) {
+    return (
+      <div className="rounded-2xl bg-[var(--color-card)] p-4 text-[13px] text-[var(--color-ink-muted)]">
+        Загрузка…
+      </div>
+    );
+  }
+  if (stats.total === 0) {
+    return (
+      <div className="rounded-2xl bg-[var(--color-card)] p-4 text-center text-[13px] text-[var(--color-ink-muted)]">
+        Завершённых тренировок ещё нет
+      </div>
+    );
+  }
+  const maxFreq = Math.max(1, ...stats.frequency.map((f) => f.count));
+  const maxTonnage = Math.max(1, ...stats.totals.map((t) => t.tonnage));
+  return (
+    <div className="space-y-3">
+      <div className="grid grid-cols-2 gap-2">
+        <StatTile label="Всего тренировок" value={`${stats.total}`} />
+        <StatTile label="В среднем в неделю" value={stats.avgPerWeek.toFixed(1).replace('.', ',')} />
+      </div>
+
+      <div className="rounded-2xl bg-[var(--color-card)] p-4">
+        <div className="text-[11px] font-semibold uppercase tracking-wider text-[var(--color-ink-muted)]">
+          Посещаемость за 12 недель
+        </div>
+        <div className="mt-3 flex items-end gap-1 h-12">
+          {buildLast12Weeks(stats.frequency).map((c, i) => (
+            <div
+              key={i}
+              className="flex-1 rounded-sm"
+              style={{
+                height: `${Math.max(8, (c / maxFreq) * 100)}%`,
+                background: c === 0 ? 'var(--color-chip)' : 'var(--color-ink)',
+                opacity: c === 0 ? 0.5 : 0.3 + 0.7 * (c / maxFreq),
+              }}
+              title={`${c} тренировок`}
+            />
+          ))}
+        </div>
+      </div>
+
+      {stats.records.length > 0 && (
+        <div className="rounded-2xl bg-[var(--color-card)] p-4">
+          <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-[var(--color-ink-muted)]">
+            <Trophy size={12} /> Личные рекорды
+          </div>
+          <ul className="mt-2 space-y-1.5">
+            {stats.records.map((r, i) => (
+              <li key={i} className="flex items-baseline justify-between gap-2 text-[13px]">
+                <span className="truncate">{r.exerciseName}</span>
+                <span className="shrink-0 font-semibold tabular-nums">
+                  {r.weightKg} кг × {r.reps}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {stats.totals.length > 0 && (
+        <div className="rounded-2xl bg-[var(--color-card)] p-4">
+          <div className="text-[11px] font-semibold uppercase tracking-wider text-[var(--color-ink-muted)]">
+            Тоннаж по месяцам (последние 6)
+          </div>
+          <ul className="mt-2 space-y-1.5">
+            {stats.totals.map((t) => (
+              <li key={t.month}>
+                <div className="flex items-baseline justify-between text-[12px]">
+                  <span className="capitalize text-[var(--color-ink-muted)]">{formatMonthShort(t.month)}</span>
+                  <span className="font-semibold tabular-nums">{t.tonnage.toLocaleString('ru-RU')} кг</span>
+                </div>
+                <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-[var(--color-chip)]">
+                  <div
+                    className="h-full bg-ink"
+                    style={{ width: `${(t.tonnage / maxTonnage) * 100}%` }}
+                  />
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function StatTile({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl bg-[var(--color-card)] p-3 text-center">
+      <div className="text-[20px] font-bold tabular-nums">{value}</div>
+      <div className="text-[11px] text-[var(--color-ink-muted)]">{label}</div>
+    </div>
+  );
+}
+
+// Возвращает массив длиной 12 — количество тренировок по неделям подряд,
+// от 12 недель назад до текущей. Гарантирует наличие нулей для пустых недель.
+function buildLast12Weeks(frequency: ClientStats['frequency']): number[] {
+  const byKey = new Map(frequency.map((f) => [f.week, f.count]));
+  const result: number[] = [];
+  const now = new Date();
+  for (let i = 11; i >= 0; i--) {
+    const d = new Date(now);
+    d.setDate(d.getDate() - i * 7);
+    const week = `${d.getFullYear()}-${String(getWeek(d)).padStart(2, '0')}`;
+    result.push(byKey.get(week) ?? 0);
+  }
+  return result;
+}
+
+function getWeek(d: Date): number {
+  const onejan = new Date(d.getFullYear(), 0, 1);
+  return Math.ceil(((d.getTime() - onejan.getTime()) / 86400000 + onejan.getDay() + 1) / 7);
+}
+
+function formatMonthShort(month: string): string {
+  const [y, m] = month.split('-').map(Number);
+  const d = new Date(y, m - 1, 1);
+  return d.toLocaleDateString('ru-RU', { month: 'short', year: '2-digit' });
 }
 
 function formatMoney(value: number): string {

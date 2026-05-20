@@ -12,6 +12,7 @@ import { alertsRouter } from './routes/alerts.js';
 import { gymsRouter } from './routes/gyms.js';
 import { expensesRouter } from './routes/expenses.js';
 import { accountingRouter } from './routes/accounting.js';
+import { clientStatsRouter } from './routes/client-stats.js';
 import { runSeedIfEmpty, seedSessionsIfEmpty, seedTrainerIfEmpty, ensureTrainerShareCode, ensureSchemaUpgrades, normalizeWorkouts } from './seed.js';
 
 const app = express();
@@ -23,6 +24,7 @@ app.get('/api/health', (_req, res) => {
 });
 
 app.use('/api/clients', clientsRouter);
+app.use('/api/clients/:id/stats', clientStatsRouter);
 app.use('/api/clients/:id/packages', clientPackagesRouter);
 app.use('/api/packages', packagesRouter);
 app.use('/api/exercises', exercisesRouter);
