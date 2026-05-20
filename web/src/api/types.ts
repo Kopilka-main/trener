@@ -148,6 +148,39 @@ export type SessionInput = {
   note?: string | null;
 };
 
+export type PaymentPackageStatus = 'active' | 'closed' | 'cancelled';
+
+export type PaymentPackage = {
+  id: string;
+  clientId: string;
+  lessonsPaid: number;
+  pricePerLesson: number;
+  totalPaid: number;
+  workoutType: string | null;
+  startsAt: string;          // YYYY-MM-DD
+  status: PaymentPackageStatus;
+  note: string | null;
+  createdAt: string;
+};
+
+export type PaymentPackageInput = {
+  lessonsPaid: number;
+  pricePerLesson: number;
+  totalPaid?: number;
+  workoutType?: string | null;
+  startsAt: string;
+  status?: PaymentPackageStatus;
+  note?: string | null;
+};
+
+export type ClientBalance = {
+  paid: number;
+  scheduled: number;
+  completedApproved: number;
+  unapproved: number;
+  remaining: number;
+};
+
 export type Trainer = {
   id: string;
   firstName: string;

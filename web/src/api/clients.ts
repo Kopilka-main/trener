@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from './client';
-import type { Client, ClientInput } from './types';
+import type { Client, ClientBalance, ClientInput } from './types';
 
 export function useClients(query?: string) {
   return useQuery({
@@ -33,6 +33,15 @@ export function useUpdateClient(id: string) {
       qc.invalidateQueries({ queryKey: ['clients'] });
       qc.invalidateQueries({ queryKey: ['client', id] });
     },
+  });
+}
+
+// Баланс тренировок клиента: план/факт (на лету из БД).
+export function useClientBalance(id: string | undefined) {
+  return useQuery({
+    queryKey: ['balance', id],
+    enabled: !!id,
+    queryFn: () => api.get<ClientBalance>(`/api/clients/${id}/balance`),
   });
 }
 

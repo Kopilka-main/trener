@@ -116,6 +116,21 @@ CREATE TABLE IF NOT EXISTS sessions (
 CREATE INDEX IF NOT EXISTS idx_sessions_date ON sessions(date);
 CREATE INDEX IF NOT EXISTS idx_sessions_client ON sessions(client_id);
 
+-- Пакеты оплаченных тренировок клиента (план/факт считается на лету).
+CREATE TABLE IF NOT EXISTS payment_packages (
+  id TEXT PRIMARY KEY,
+  client_id TEXT NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+  lessons_paid INTEGER NOT NULL,
+  price_per_lesson REAL NOT NULL,
+  total_paid REAL NOT NULL,
+  workout_type TEXT,                       -- 'силовая' | 'йога' | NULL = любой
+  starts_at TEXT NOT NULL,                 -- YYYY-MM-DD
+  status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'closed', 'cancelled')),
+  note TEXT,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_packages_client ON payment_packages(client_id, status);
+
 -- Профиль тренера (одна запись на приложение).
 CREATE TABLE IF NOT EXISTS trainer (
   id TEXT PRIMARY KEY,

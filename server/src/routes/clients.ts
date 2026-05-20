@@ -156,3 +156,39 @@ clientsRouter.delete(
     res.status(204).send();
   })
 );
+
+// Баланс тренировок: план/факт по клиенту. Считается на лету.
+const balancePaidStmt = db.prepare<[string], { paid: number | null }>(
+  `SELECT COALESCE(SUM(lessons_paid), 0) AS paid
+   FROM payment_packages WHERE client_id = ? AND status = 'active'`
+);
+const balanceScheduledStmt = db.prepare<[string], { n: number }>(
+  `SELECT COUNT(*) AS n FROM sessions
+   WHERE client_id = ? AND status IN ('planned', 'completed')`
+);
+const balanceCompletedApprovedStmt = db.prepare<[string], { n: number }>(
+  `SELECT COUNT(*) AS n FROM sessions
+   WHERE client_id = ? AND status = 'completed' AND approval = 'approved'`
+);
+const balanceUnapprovedStmt = db.prepare<[string], { n: number }>(
+  `SELECT COUNT(*) AS n FROM sessions
+   WHERE client_id = ? AND status = 'planned' AND approval IN ('none', 'pending')`
+);
+
+clientsRouter.get(
+  '/:id/balance',
+  asyncHandler((req, res) => {
+    requireRow(getStmt.get(req.params.id), 'Client');
+    const paid = balancePaidStmt.get(req.params.id)?.paid ?? 0;
+    const scheduled = balanceScheduledStmt.get(req.params.id)?.n ?? 0;
+    const completedApproved = balanceCompletedApprovedStmt.get(req.params.id)?.n ?? 0;
+    const unapproved = balanceUnapprovedStmt.get(req.params.id)?.n ?? 0;
+    res.json({
+      paid,
+      scheduled,
+      completedApproved,
+      unapproved,
+      remaining: paid - completedApproved,
+    });
+  })
+);

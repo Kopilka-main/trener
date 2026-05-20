@@ -7,6 +7,7 @@ import { workoutTemplatesRouter } from './routes/workout-templates.js';
 import { clientWorkoutsRouter } from './routes/client-workouts.js';
 import { sessionsRouter } from './routes/sessions.js';
 import { trainerRouter } from './routes/trainer.js';
+import { clientPackagesRouter, packagesRouter } from './routes/packages.js';
 import { runSeedIfEmpty, seedSessionsIfEmpty, seedTrainerIfEmpty, ensureTrainerShareCode, ensureSchemaUpgrades, normalizeWorkouts } from './seed.js';
 
 const app = express();
@@ -18,6 +19,8 @@ app.get('/api/health', (_req, res) => {
 });
 
 app.use('/api/clients', clientsRouter);
+app.use('/api/clients/:id/packages', clientPackagesRouter);
+app.use('/api/packages', packagesRouter);
 app.use('/api/exercises', exercisesRouter);
 app.use('/api/workout-templates', workoutTemplatesRouter);
 app.use('/api/sessions', sessionsRouter);

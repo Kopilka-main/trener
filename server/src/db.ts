@@ -111,6 +111,19 @@ export type SessionRow = {
   created_at: string;
 };
 
+export type PaymentPackageRow = {
+  id: string;
+  client_id: string;
+  lessons_paid: number;
+  price_per_lesson: number;
+  total_paid: number;
+  workout_type: string | null;
+  starts_at: string;
+  status: 'active' | 'closed' | 'cancelled';
+  note: string | null;
+  created_at: string;
+};
+
 export type TrainerRow = {
   id: string;
   first_name: string;
