@@ -231,6 +231,7 @@ export type ClientBalance = {
   approvedTotal: number;         // всего согласовано (planned + completed)
   unapproved: number;            // запланированы и НЕ согласованы (любые: none + pending)
   needsSending: number;          // ещё не отправлены клиенту вовсе (approval='none')
+  upcomingPlanned: number;       // только будущие запланированные (date ≥ сегодня)
   remaining: number;             // paid − completedApproved
 };
 

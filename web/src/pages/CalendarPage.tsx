@@ -583,7 +583,7 @@ function MonthView({
   sessions: Session[];
   paidMap: Record<string, boolean>;
   singleClient: boolean;          // фильтр по конкретному клиенту → показываем статус, не счётчик
-  clientBalance?: { paid: number; scheduled: number; completedApproved: number };
+  clientBalance?: { paid: number; upcomingPlanned: number };
   onPickDay: (d: Date) => void;
 }) {
   const cells = monthGrid(anchor);
@@ -659,7 +659,7 @@ function MonthView({
         </div>
       )}
       {singleClient && clientBalance && (
-        // Общая сводка по клиенту (а не по конкретному месяцу).
+        // Общая сводка по клиенту: оплачено всего + запланировано в будущем.
         <div className="mt-3 flex flex-wrap items-center justify-center gap-x-3 gap-y-0.5 text-[12px]">
           <span className="flex items-center gap-1">
             <span className="font-bold tabular-nums" style={{ color: 'var(--color-success)' }}>{clientBalance.paid}</span>
@@ -667,13 +667,8 @@ function MonthView({
           </span>
           <span className="text-[var(--color-ink-muted)]">·</span>
           <span className="flex items-center gap-1">
-            <span className="font-bold tabular-nums">{clientBalance.scheduled}</span>
-            <span className="text-[var(--color-ink-muted)]">запланировано</span>
-          </span>
-          <span className="text-[var(--color-ink-muted)]">·</span>
-          <span className="flex items-center gap-1">
-            <span className="font-bold tabular-nums">{clientBalance.completedApproved}</span>
-            <span className="text-[var(--color-ink-muted)]">проведено</span>
+            <span className="font-bold tabular-nums">{clientBalance.upcomingPlanned}</span>
+            <span className="text-[var(--color-ink-muted)]">запланировано вперёд</span>
           </span>
         </div>
       )}

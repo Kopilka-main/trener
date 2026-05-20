@@ -182,6 +182,11 @@ const balanceNeedsSendingStmt = db.prepare<[string], { n: number }>(
   `SELECT COUNT(*) AS n FROM sessions
    WHERE client_id = ? AND status = 'planned' AND approval = 'none'`
 );
+// Только будущее (сегодня и далее) запланированное — для сводки тренеру.
+const balanceUpcomingStmt = db.prepare<[string, string], { n: number }>(
+  `SELECT COUNT(*) AS n FROM sessions
+   WHERE client_id = ? AND status = 'planned' AND date >= ?`
+);
 
 clientsRouter.get(
   '/:id/balance',
@@ -193,6 +198,8 @@ clientsRouter.get(
     const approvedTotal = balanceApprovedTotalStmt.get(req.params.id)?.n ?? 0;
     const unapproved = balanceUnapprovedStmt.get(req.params.id)?.n ?? 0;
     const needsSending = balanceNeedsSendingStmt.get(req.params.id)?.n ?? 0;
+    const today = new Date().toISOString().slice(0, 10);
+    const upcomingPlanned = balanceUpcomingStmt.get(req.params.id, today)?.n ?? 0;
     res.json({
       paid,
       scheduled,
@@ -200,6 +207,7 @@ clientsRouter.get(
       approvedTotal,
       unapproved,
       needsSending,
+      upcomingPlanned,
       remaining: paid - completedApproved,
     });
   })
