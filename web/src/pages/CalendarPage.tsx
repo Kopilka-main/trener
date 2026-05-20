@@ -40,8 +40,8 @@ export function CalendarPage() {
   const { data: filterClient } = useClient(clientId);
 
   // У клиента по умолчанию показываем месяц (общая картина),
-  // в общем календаре — день (привычный планировочный режим).
-  const [view, setView] = useState<View>(clientId ? 'month' : 'day');
+  // в общем календаре — неделю (компромисс между обзором и детализацией).
+  const [view, setView] = useState<View>(clientId ? 'month' : 'week');
   const [creating, setCreating] = useState(false);
   const [anchor, setAnchor] = useState<Date>(new Date());
   const [editing, setEditing] = useState<Session | null>(null);
