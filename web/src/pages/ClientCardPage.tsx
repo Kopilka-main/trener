@@ -228,54 +228,34 @@ function BalanceCard({ clientId }: { clientId: string }) {
       </div>
     );
   }
-  const negative = balance.remaining < 0;
-  const remainingLabel = negative
-    ? `${balance.remaining}, требуется оплата`
-    : `осталось ${balance.remaining}`;
-  const remainingColor = negative ? 'var(--color-danger)' : 'var(--color-success)';
+  // remaining = paid − completedApproved. >0 — оплачено сверх; <0 — в долг; 0 — ровно.
+  const r = balance.remaining;
+  const balanceLabel = r === 0 ? '0' : r > 0 ? `+${r}` : `${r}`;
+  const balanceTone = r === 0 ? undefined : r > 0 ? 'success' : 'danger';
+  const balanceColor =
+    balanceTone === 'success' ? 'var(--color-success)' : balanceTone === 'danger' ? 'var(--color-danger)' : undefined;
+  const balanceHint = r === 0 ? 'ровно по оплате' : r > 0 ? 'тренировок оплачено сверх' : 'тренировок в долг';
   return (
-    <div className="rounded-2xl bg-[var(--color-card)] p-4 space-y-3">
-      <div className="flex items-baseline justify-between">
-        <span className="text-[12px] text-[var(--color-ink-muted)]">Остаток</span>
-        <span className="text-[24px] font-bold tabular-nums" style={{ color: remainingColor }}>
-          {remainingLabel}
-        </span>
-      </div>
-      <div className="grid grid-cols-2 gap-2 text-center">
-        <BalanceCell label="Оплачено" value={balance.paid} />
-        <BalanceCell label="Запланировано" value={balance.scheduled} />
-        <BalanceCell
-          label="Согласовано"
-          value={balance.approvedTotal}
-          tone={balance.approvedTotal > 0 ? 'success' : undefined}
-        />
-        <BalanceCell
-          label="Не согласовано"
-          value={balance.unapproved}
-          tone={balance.unapproved > 0 ? 'warn' : undefined}
-        />
-      </div>
-      {balance.needsSending > 0 && (
-        <div className="rounded-xl px-3 py-2 text-center text-[12px]" style={{ background: 'rgba(217,145,43,0.12)', color: '#7a4a14' }}>
-          Осталось отправить клиенту: <span className="font-bold">{balance.needsSending}</span>
+    <div className="rounded-2xl bg-[var(--color-card)] p-4">
+      <div className="grid grid-cols-2 gap-3 text-center">
+        <div>
+          <div className="text-[28px] font-bold tabular-nums leading-none">{balance.completedApproved}</div>
+          <div className="mt-1 text-[11px] text-[var(--color-ink-muted)]">проведено</div>
         </div>
-      )}
+        <div>
+          <div
+            className="text-[28px] font-bold tabular-nums leading-none"
+            style={balanceColor ? { color: balanceColor } : undefined}
+          >
+            {balanceLabel}
+          </div>
+          <div className="mt-1 text-[11px] text-[var(--color-ink-muted)]">{balanceHint}</div>
+        </div>
+      </div>
     </div>
   );
 }
 
-function BalanceCell({ label, value, tone }: { label: string; value: number; tone?: 'warn' | 'success' }) {
-  const color =
-    tone === 'warn' ? '#d9912b' : tone === 'success' ? 'var(--color-success)' : undefined;
-  return (
-    <div className="rounded-xl bg-[var(--color-chip)] py-2">
-      <div className="text-[18px] font-bold tabular-nums" style={color ? { color } : undefined}>
-        {value}
-      </div>
-      <div className="text-[11px] text-[var(--color-ink-muted)]">{label}</div>
-    </div>
-  );
-}
 
 // ─── Пакеты ─────────────────────────────────────────────────────────────────
 

@@ -652,6 +652,32 @@ function MonthView({
           <span className="ml-2">· {monthTotal} за месяц</span>
         </div>
       )}
+      {singleClient && (() => {
+        // Сводка за месяц для конкретного клиента: оплачено / запланировано.
+        const monthSessions = sessions.filter((s) => parseISO(s.date).getMonth() === month);
+        const scheduled = monthSessions.length;
+        const paid = monthSessions.filter((s) => paidMap[s.id] === true).length;
+        const unpaid = scheduled - paid;
+        return (
+          <div className="mt-3 flex flex-wrap items-center justify-center gap-x-3 gap-y-0.5 text-[12px]">
+            <span className="flex items-center gap-1">
+              <span className="h-2.5 w-2.5 rounded-sm" style={{ background: PAID_BG, borderColor: PAID_BORDER, borderWidth: 1, borderStyle: 'solid' }} />
+              <span className="font-bold tabular-nums" style={{ color: 'var(--color-success)' }}>{paid}</span>
+              <span className="text-[var(--color-ink-muted)]">оплачено</span>
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="h-2.5 w-2.5 rounded-sm" style={{ background: UNPAID_BG, borderColor: UNPAID_BORDER, borderWidth: 1, borderStyle: 'solid' }} />
+              <span className="font-bold tabular-nums" style={{ color: 'var(--color-danger)' }}>{unpaid}</span>
+              <span className="text-[var(--color-ink-muted)]">не оплачено</span>
+            </span>
+            <span className="text-[var(--color-ink-muted)]">·</span>
+            <span className="flex items-center gap-1">
+              <span className="font-bold tabular-nums">{scheduled}</span>
+              <span className="text-[var(--color-ink-muted)]">всего за месяц</span>
+            </span>
+          </div>
+        );
+      })()}
     </div>
   );
 }
