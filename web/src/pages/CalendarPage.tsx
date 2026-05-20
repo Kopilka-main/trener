@@ -191,7 +191,6 @@ export function CalendarPage() {
                 anchor={anchor}
                 sessions={sessions}
                 onPickDay={(d) => { setAnchor(d); setView('day'); }}
-                onSlot={openCreateAt}
               />
             )}
           </div>
@@ -545,12 +544,10 @@ function MonthView({
   anchor,
   sessions,
   onPickDay,
-  onSlot,
 }: {
   anchor: Date;
   sessions: Session[];
   onPickDay: (d: Date) => void;
-  onSlot: (date: Date, hour: number) => void;
 }) {
   const cells = monthGrid(anchor);
   const month = anchor.getMonth();
@@ -573,38 +570,23 @@ function MonthView({
           const inMonth = d.getMonth() === month;
           const today = sameDay(d, now);
           return (
-            <div
+            <button
               key={iso}
-              className={`relative aspect-square rounded-xl ${inMonth ? 'bg-[var(--color-card)]' : ''} ${today ? 'ring-2 ring-ink' : ''}`}
+              onClick={() => onPickDay(d)}
+              className={`flex aspect-square flex-col items-center justify-center gap-0.5 rounded-xl ${inMonth ? 'bg-[var(--color-card)]' : ''} ${today ? 'ring-2 ring-ink' : ''}`}
             >
-              <button
-                type="button"
-                onClick={() => onPickDay(d)}
-                className="flex h-full w-full flex-col items-center justify-center gap-0.5"
-              >
-                <span className={`text-[12px] font-semibold tabular-nums ${inMonth ? '' : 'text-[var(--color-ink-muted)] opacity-50'}`}>
-                  {d.getDate()}
-                </span>
-                {n > 0 && (
-                  <span
-                    className="flex h-4 min-w-[16px] items-center justify-center rounded-full px-1 text-[10px] font-bold tabular-nums"
-                    style={{ backgroundColor: loadColor(n), color: n >= 3 ? '#ffffff' : '#1a1a1a' }}
-                  >
-                    {n}
-                  </span>
-                )}
-              </button>
-              {inMonth && (
-                <button
-                  type="button"
-                  onClick={(e) => { e.stopPropagation(); onSlot(d, 10); }}
-                  className="absolute right-0.5 top-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-[var(--color-chip)] opacity-70 active:opacity-100"
-                  aria-label={`Добавить занятие ${d.getDate()}`}
+              <span className={`text-[12px] font-semibold tabular-nums ${inMonth ? '' : 'text-[var(--color-ink-muted)] opacity-50'}`}>
+                {d.getDate()}
+              </span>
+              {n > 0 && (
+                <span
+                  className="flex h-4 min-w-[16px] items-center justify-center rounded-full px-1 text-[10px] font-bold tabular-nums"
+                  style={{ backgroundColor: loadColor(n), color: n >= 3 ? '#ffffff' : '#1a1a1a' }}
                 >
-                  <Plus size={11} />
-                </button>
+                  {n}
+                </span>
               )}
-            </div>
+            </button>
           );
         })}
       </div>
