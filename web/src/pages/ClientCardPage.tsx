@@ -10,9 +10,9 @@ import { useClientWorkouts } from '../api/client-workouts';
 import { useClientPackages, useCreatePackage, useDeletePackage } from '../api/packages';
 import { useTrainerAlerts } from '../api/alerts';
 import { useClientStats, type ClientStats } from '../api/client-stats';
-import { calcAge, formatBirth, formatDate, formatDuration } from '../lib/format';
+import { calcAge, formatBirth } from '../lib/format';
 import { fullName } from '../lib/initials';
-import type { ClientWorkoutSummary, PaymentPackage, PaymentPackageInput } from '../api/types';
+import type { PaymentPackage, PaymentPackageInput } from '../api/types';
 
 // Полноценная страница карточки клиента. Открывается тапом по клиенту в списке.
 // Сверху — крупная CTA «Перейти к тренировкам», ниже — данные и история.
@@ -30,7 +30,6 @@ export function ClientCardPage() {
   const tags = (client.hashtags ?? '').split(/\s+/).filter(Boolean);
   const history = workouts?.history ?? [];
   const totalWorkouts = history.length + (workouts?.current ? 1 : 0);
-  const recent = history.slice(0, 3);
 
   return (
     <div className="flex h-full flex-col">
@@ -166,16 +165,6 @@ export function ClientCardPage() {
             <div className="rounded-2xl bg-[var(--color-card)] p-4 text-[14px] leading-relaxed whitespace-pre-line">
               {client.medicalNotes}
             </div>
-          </Section>
-        )}
-
-        {recent.length > 0 && (
-          <Section title="Последние тренировки">
-            <ul className="overflow-hidden rounded-2xl">
-              {recent.map((w, i) => (
-                <HistoryItem key={w.id} workout={w} last={i === recent.length - 1} />
-              ))}
-            </ul>
           </Section>
         )}
 
@@ -568,30 +557,3 @@ function formatDateRu(iso: string): string {
   return d.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 
-function HistoryItem({ workout, last }: { workout: ClientWorkoutSummary; last: boolean }) {
-  const dateStr = formatDate(workout.completedAt ?? workout.createdAt);
-  const [month, day] = dateStr.split(' ');
-  return (
-    <li
-      className={`flex items-center gap-3 bg-[var(--color-card)] px-3 py-2.5 ${
-        last ? '' : 'border-b border-[var(--color-line)]'
-      }`}
-    >
-      <div className="flex h-11 w-11 shrink-0 flex-col items-center justify-center rounded-xl bg-[var(--color-chip)] text-center leading-tight">
-        <span className="text-[10px] font-medium uppercase text-[var(--color-ink-muted)]">{month}</span>
-        <span className="text-sm font-bold tabular-nums">{day}</span>
-      </div>
-      <div className="min-w-0 flex-1">
-        <div className="truncate text-[14px] font-semibold">{workout.name}</div>
-        {workout.status === 'skipped' ? (
-          <div className="text-[11px] text-[var(--color-danger)]">пропущена</div>
-        ) : (
-          <div className="text-[11px] text-[var(--color-ink-muted)]">
-            {workout.durationSec ? formatDuration(workout.durationSec) : ''}
-            {workout.rpe ? ` · RPE ${workout.rpe}` : ''}
-          </div>
-        )}
-      </div>
-    </li>
-  );
-}
