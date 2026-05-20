@@ -5,8 +5,6 @@ import { useClients } from '../api/clients';
 import { useTrainer } from '../api/trainer';
 import { Avatar } from '../components/Avatar';
 import { AlphaIndex } from '../components/AlphaIndex';
-import { ClientPreviewSheet } from '../components/ClientPreviewSheet';
-import { useLongPress } from '../hooks/useLongPress';
 import { appBase } from '../lib/routes';
 import { fullName } from '../lib/initials';
 import { formatSchedule } from '../lib/format';
@@ -17,7 +15,6 @@ export function ClientsPage() {
   const [query, setQuery] = useState('');
   const { data: clients = [], isLoading } = useClients(query);
   const { data: trainer } = useTrainer();
-  const [previewClient, setPreviewClient] = useState<Client | null>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const showTrainer = !!trainer && !query;
 
@@ -115,7 +112,11 @@ export function ClientsPage() {
               <h2 className="px-1 pt-2 pb-1 text-[12px] font-medium text-[var(--color-ink-muted)]">{letter}</h2>
               <ul className="space-y-2">
                 {list.map((c) => (
-                  <ClientRow key={c.id} client={c} onPreview={setPreviewClient} onOpen={() => navigate(`${appBase()}/clients/${c.id}/workouts`)} />
+                  <ClientRow
+                    key={c.id}
+                    client={c}
+                    onOpen={() => navigate(`${appBase()}/clients/${c.id}`)}
+                  />
                 ))}
               </ul>
             </section>
@@ -123,21 +124,17 @@ export function ClientsPage() {
         </div>
         <AlphaIndex available={availableLetters} onPick={scrollToLetter} />
       </div>
-
-      <ClientPreviewSheet client={previewClient} open={!!previewClient} onClose={() => setPreviewClient(null)} />
     </div>
   );
 }
 
-function ClientRow({ client, onPreview, onOpen }: { client: Client; onPreview: (c: Client) => void; onOpen: () => void }) {
-  const longPress = useLongPress(() => onPreview(client));
+function ClientRow({ client, onOpen }: { client: Client; onOpen: () => void }) {
   const schedule = formatSchedule(client.scheduleDay, client.scheduleTime);
   return (
     <li>
       <button
         type="button"
         onClick={onOpen}
-        {...longPress}
         className="flex w-full items-center gap-3 rounded-2xl bg-[var(--color-card)] px-3 py-2.5 text-left active:scale-[0.99] transition-transform"
       >
         <Avatar firstName={client.firstName} lastName={client.lastName} size={44} />
@@ -149,6 +146,7 @@ function ClientRow({ client, onPreview, onOpen }: { client: Client; onPreview: (
             </div>
           )}
         </div>
+        <ChevronRight size={16} className="shrink-0 text-[var(--color-ink-muted)]" />
       </button>
     </li>
   );

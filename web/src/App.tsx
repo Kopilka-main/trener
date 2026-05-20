@@ -4,6 +4,7 @@ import { RoleSelectPage } from './pages/RoleSelectPage';
 import { ClientsPage } from './pages/ClientsPage';
 import { ClientEditPage } from './pages/ClientEditPage';
 import { ClientWorkoutsPage } from './pages/ClientWorkoutsPage';
+import { ClientCardPage } from './pages/ClientCardPage';
 import { ClientProfilePage } from './pages/ClientProfilePage';
 import { KnowledgeBasePage } from './pages/KnowledgeBasePage';
 import { ExerciseEditorPage } from './pages/ExerciseEditorPage';
@@ -73,6 +74,7 @@ export function App() {
             <Route path={`${TRAINER_BASE}/register`} element={<RegisterPage />} />
             <Route path={`${TRAINER_BASE}/clients`} element={<ClientsPage />} />
             <Route path={`${TRAINER_BASE}/clients/new`} element={<ClientEditPage mode="create" />} />
+            <Route path={`${TRAINER_BASE}/clients/:id`} element={<ClientCardPage />} />
             <Route path={`${TRAINER_BASE}/clients/:id/edit`} element={<ClientEditPage mode="edit" />} />
             <Route path={`${TRAINER_BASE}/clients/:id/workouts`} element={<ClientWorkoutsPage />} />
             <Route path={`${TRAINER_BASE}/exercises`} element={<KnowledgeBasePage />} />

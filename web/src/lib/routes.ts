@@ -33,10 +33,19 @@ export function backTarget(pathname: string, search = ''): string {
   if (sub === 'profile') return segs[2] === 'edit' ? `${base}/profile` : sectionHome;
   if (sub === 'calendar') {
     const clientId = new URLSearchParams(search).get('clientId');
-    if (clientId && !isClient) return `${TRAINER_BASE}/clients/${clientId}/workouts`;
+    // Календарь, открытый из карточки клиента, возвращает в карточку.
+    if (clientId && !isClient) return `${TRAINER_BASE}/clients/${clientId}`;
     return sectionHome;
   }
-  if (sub === 'clients') return `${TRAINER_BASE}/clients`;
+  if (sub === 'clients') {
+    // /clients/new и /clients/:id (карточка) возвращают в список.
+    // /clients/:id/edit и /clients/:id/workouts — в карточку клиента.
+    const idOrAction = segs[2];
+    const action = segs[3];
+    if (!idOrAction || idOrAction === 'new') return `${TRAINER_BASE}/clients`;
+    if (!action) return `${TRAINER_BASE}/clients`;
+    return `${TRAINER_BASE}/clients/${idOrAction}`;
+  }
   if (sub === 'workouts') return sectionHome;
   return sectionHome;
 }

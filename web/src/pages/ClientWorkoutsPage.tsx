@@ -6,7 +6,6 @@ import { Avatar } from '../components/Avatar';
 import { BottomSheet } from '../components/BottomSheet';
 import { SortableList } from '../components/SortableList';
 import { AddExerciseSheet } from '../components/AddExerciseSheet';
-import { ClientPreviewSheet } from '../components/ClientPreviewSheet';
 import { useClient } from '../api/clients';
 import { useAddWorkoutExercise, useAssignWorkout, useClientWorkout, useClientWorkouts, useDeleteWorkout, useRemoveWorkoutExercise, useReorderWorkoutExercises, useStartWorkout } from '../api/client-workouts';
 import { useWorkoutTemplates } from '../api/workout-templates';
@@ -30,7 +29,6 @@ export function ClientWorkoutsPage() {
   const confirm = useConfirm();
   const [picker, setPicker] = useState<'none' | 'template' | 'history'>('none');
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [previewOpen, setPreviewOpen] = useState(false);
   const isClient = localStorage.getItem('app_role') === 'client';
 
   if (!client) return null;
@@ -83,9 +81,9 @@ export function ClientWorkoutsPage() {
               </div>
             </button>
           ) : (
-            // В тренерском режиме тап по клиенту открывает карточку-шторку.
+            // В тренерском режиме тап по клиенту ведёт на полноценную карточку.
             <button
-              onClick={() => setPreviewOpen(true)}
+              onClick={() => navigate(`${appBase()}/clients/${id}`)}
               className="flex min-w-0 flex-1 items-center gap-3 text-left transition-transform active:scale-[0.99]"
             >
               <Avatar firstName={client.firstName} lastName={client.lastName} size={48} />
@@ -162,9 +160,6 @@ export function ClientWorkoutsPage() {
         </div>
       </div>
 
-      {!isClient && (
-        <ClientPreviewSheet client={client} open={previewOpen} onClose={() => setPreviewOpen(false)} />
-      )}
       <TemplatePicker
         open={picker === 'template'}
         onClose={() => setPicker('none')}
