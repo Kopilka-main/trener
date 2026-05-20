@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { BadgeCheck, ChevronLeft, ChevronRight, CircleDashed, Clock, Plus } from 'lucide-react';
+import { BadgeCheck, ChevronLeft, ChevronRight, CircleDashed, Plus } from 'lucide-react';
+import { Checkbox } from '../components/Checkbox';
 import { ScreenHeader } from '../components/ScreenHeader';
 import { BottomSheet } from '../components/BottomSheet';
 import { useConfirm } from '../components/ConfirmProvider';
@@ -209,31 +210,28 @@ function Segmented<T extends string>({
   );
 }
 
-// Три состояния согласования занятия с клиентом.
-const APPROVAL_META: Record<SessionApproval, { Icon: typeof BadgeCheck; color: string; label: string }> = {
-  approved: { Icon: BadgeCheck, color: 'var(--color-success)', label: 'Подтверждено клиентом' },
-  pending: { Icon: Clock, color: '#d9912b', label: 'Ждёт подтверждения' },
-  none: { Icon: CircleDashed, color: 'var(--color-ink-muted)', label: 'Не отправлено клиенту' },
-};
+// Два состояния занятия: согласовано клиентом или нет (pending = не согласовано).
+function approvalLook(approval: SessionApproval) {
+  return approval === 'approved'
+    ? { Icon: BadgeCheck, color: 'var(--color-success)', label: 'Согласовано' }
+    : { Icon: CircleDashed, color: 'var(--color-ink-muted)', label: 'Не согласовано' };
+}
 
-// Значок согласования рядом с занятием — показывается для всех состояний.
 function ApprovalBadge({ approval, size = 13 }: { approval: SessionApproval; size?: number }) {
-  const { Icon, color, label } = APPROVAL_META[approval];
+  const { Icon, color, label } = approvalLook(approval);
   return <Icon size={size} className="shrink-0" style={{ color }} aria-label={label} />;
 }
 
-// Подпись-легенда со значками согласования — для дневного вида.
+// Подпись-легенда со значками для дневного вида.
 function ApprovalLegend() {
   return (
     <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 px-5 pb-1 text-[10px] text-[var(--color-ink-muted)]">
-      {(['approved', 'pending', 'none'] as SessionApproval[]).map((a) => {
-        const { Icon, color, label } = APPROVAL_META[a];
-        return (
-          <span key={a} className="flex items-center gap-1">
-            <Icon size={11} style={{ color }} /> {label.toLowerCase()}
-          </span>
-        );
-      })}
+      <span className="flex items-center gap-1">
+        <BadgeCheck size={11} style={{ color: 'var(--color-success)' }} /> согласовано
+      </span>
+      <span className="flex items-center gap-1">
+        <CircleDashed size={11} style={{ color: 'var(--color-ink-muted)' }} /> не согласовано
+      </span>
     </div>
   );
 }
@@ -511,12 +509,10 @@ function SessionForm({
   const [location, setLocation] = useState(session?.location ?? LOCATIONS[0]);
   const [title, setTitle] = useState(session?.title ?? '');
   const [typePickerOpen, setTypePickerOpen] = useState(false);
-  const [approval] = useState<SessionApproval>(session?.approval ?? 'none');
+  // Бинарное состояние: согласовано клиентом или нет.
+  const [approved, setApproved] = useState<boolean>(session?.approval === 'approved');
 
-  const selectedClient = clients.find((c) => c.id === clientId);
-  const canSend = !!selectedClient?.accountId;
-
-  const save = async (overrideApproval?: SessionApproval) => {
+  const save = async () => {
     if (!clientId) { alert('Выберите клиента'); return; }
     const input: SessionInput = {
       clientId,
@@ -525,7 +521,7 @@ function SessionForm({
       durationMin: duration,
       location: location || null,
       title: title.trim() || null,
-      approval: overrideApproval ?? approval,
+      approval: approved ? 'approved' : 'none',
     };
     if (session) await updateMut.mutateAsync({ id: session.id, input });
     else await createMut.mutateAsync(input);
@@ -612,40 +608,26 @@ function SessionForm({
       </Field>
 
       <button
-        onClick={() => save()}
+        type="button"
+        onClick={() => setApproved((v) => !v)}
+        className="flex w-full items-center gap-3 rounded-2xl bg-[var(--color-card)] px-4 py-3.5 text-left"
+      >
+        <Checkbox checked={approved} />
+        <span className="flex-1 text-[14px] font-medium">Согласовано клиентом</span>
+        {approved ? (
+          <BadgeCheck size={16} style={{ color: 'var(--color-success)' }} />
+        ) : (
+          <CircleDashed size={16} className="text-[var(--color-ink-muted)]" />
+        )}
+      </button>
+
+      <button
+        onClick={save}
         className="w-full rounded-2xl bg-ink py-3.5 text-[15px] font-semibold"
         style={{ color: '#ffffff' }}
       >
         {session ? 'Сохранить' : 'Создать занятие'}
       </button>
-
-      {approval === 'none' && clientId && (
-        canSend ? (
-          <button
-            onClick={() => save('pending')}
-            className="w-full rounded-2xl bg-[var(--color-chip)] py-3 text-[14px] font-medium"
-          >
-            Отправить на согласование
-          </button>
-        ) : (
-          <div className="rounded-2xl bg-[var(--color-chip)] px-4 py-3 text-center text-[12px] text-[var(--color-ink-muted)]">
-            Обновите «ID клиента» в карточке клиента, чтобы отправить занятие на согласование.
-          </div>
-        )
-      )}
-      {approval === 'pending' && (
-        <div className="space-y-1.5 rounded-2xl bg-[var(--color-chip)] px-4 py-3 text-center">
-          <div className="text-[13px] font-medium">Отправлено на согласование</div>
-          <button onClick={() => save('approved')} className="text-[12px] font-medium text-[var(--color-ink-muted)] underline">
-            Отметить согласованным
-          </button>
-        </div>
-      )}
-      {approval === 'approved' && (
-        <div className="rounded-2xl bg-[var(--color-chip)] px-4 py-3 text-center text-[13px] font-medium text-[var(--color-success)]">
-          Согласовано клиентом
-        </div>
-      )}
 
       {session && (
         <button
