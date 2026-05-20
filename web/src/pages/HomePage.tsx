@@ -18,11 +18,10 @@ export function HomePage() {
   return (
     <div className="flex h-full flex-col">
       <header className="px-5 pt-3 pb-3">
-        <h1 className="text-[34px] font-bold leading-tight">Тренер</h1>
         {trainer && (
           <button
             onClick={() => navigate('/trainer/profile')}
-            className="mt-2 flex w-full items-center gap-3 rounded-2xl bg-[var(--color-card)] p-3 text-left active:scale-[0.99] transition-transform"
+            className="flex w-full items-center gap-3 rounded-2xl bg-[var(--color-card)] p-3 text-left active:scale-[0.99] transition-transform"
           >
             <Avatar firstName={trainer.firstName} lastName={trainer.lastName} size={44} />
             <div className="min-w-0 flex-1">
