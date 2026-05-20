@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { AlertTriangle, BarChart3, ChevronDown, ChevronRight, ChevronUp, Dumbbell, Pencil, Plus, Trophy, Wallet, X } from 'lucide-react';
+import { AlertTriangle, BarChart3, ChevronDown, ChevronRight, ChevronUp, Dumbbell, MessageSquare, Pencil, Plus, Trophy, Wallet, X } from 'lucide-react';
 import { ScreenHeader } from '../components/ScreenHeader';
 import { Avatar } from '../components/Avatar';
 import { Field, TextArea, TextInput } from '../components/Field';
@@ -89,6 +89,23 @@ export function ClientCardPage() {
             </span>
           </span>
           <ChevronRight size={18} className="shrink-0" />
+        </button>
+
+        {/* Чат с клиентом */}
+        <button
+          onClick={() => navigate(`/trainer/chat/${id}`)}
+          className="flex w-full items-center gap-3 rounded-2xl bg-[var(--color-card)] p-4 text-left"
+        >
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[var(--color-chip)]">
+            <MessageSquare size={20} />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-[15px] font-bold">Написать клиенту</span>
+            <span className="block text-[12px] text-[var(--color-ink-muted)]">
+              чат тренер ↔ клиент
+            </span>
+          </span>
+          <ChevronRight size={18} className="shrink-0 text-[var(--color-ink-muted)]" />
         </button>
 
         {myAlert && (
