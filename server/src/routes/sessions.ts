@@ -16,6 +16,7 @@ const sessionInput = z.object({
   title: z.string().max(120).nullish(),
   status: z.enum(['planned', 'completed', 'cancelled']).optional(),
   approval: z.enum(['none', 'pending', 'approved']).optional(),
+  deliveredAt: z.string().nullish(),                 // ISO timestamp или null для сброса; undefined — не трогать
   note: z.string().max(2000).nullish(),
 });
 
@@ -57,6 +58,7 @@ const updateStmt = db.prepare(`
     title = @title,
     status = @status,
     approval = @approval,
+    delivered_at = @delivered_at,
     note = @note
   WHERE id = @id
 `);
@@ -77,6 +79,7 @@ function toApi(row: SessionJoined) {
     title: row.title,
     status: row.status,
     approval: row.approval,
+    deliveredAt: row.delivered_at,
     note: row.note,
     createdAt: row.created_at,
   };
@@ -141,6 +144,8 @@ sessionsRouter.put(
       title: input.title ?? null,
       status: input.status ?? existing.status,
       approval: input.approval ?? existing.approval,
+      // undefined — не трогать; null — сбросить; строка — установить.
+      delivered_at: input.deliveredAt === undefined ? existing.delivered_at : input.deliveredAt,
       note: input.note ?? null,
     });
     res.json(toApi(requireRow(getStmt.get(existing.id), 'Session')));
@@ -153,5 +158,19 @@ sessionsRouter.delete(
     const result = deleteStmt.run(req.params.id);
     if (result.changes === 0) throw new HttpError(404, 'Session not found');
     res.status(204).send();
+  })
+);
+
+// PATCH /:id/deliver — пометить, что клиент получил уведомление о занятии.
+// В MVP вызывается тренером (mock) или клиентом, когда тот опрашивает занятия.
+const deliverStmt = db.prepare(`UPDATE sessions SET delivered_at = ? WHERE id = ?`);
+sessionsRouter.patch(
+  '/:id/deliver',
+  asyncHandler((req, res) => {
+    const existing = requireRow(getStmt.get(req.params.id), 'Session');
+    if (!existing.delivered_at) {
+      deliverStmt.run(new Date().toISOString(), existing.id);
+    }
+    res.json(toApi(requireRow(getStmt.get(existing.id), 'Session')));
   })
 );

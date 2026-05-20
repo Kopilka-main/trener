@@ -1,7 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { BadgeCheck, ChevronLeft, ChevronRight, CircleDashed, Plus } from 'lucide-react';
-import { Checkbox } from '../components/Checkbox';
+import { Check, CheckCheck, ChevronLeft, ChevronRight, CircleDashed, Plus } from 'lucide-react';
 import { ScreenHeader } from '../components/ScreenHeader';
 import { BottomSheet } from '../components/BottomSheet';
 import { useConfirm } from '../components/ConfirmProvider';
@@ -210,27 +209,86 @@ function Segmented<T extends string>({
   );
 }
 
-// Два состояния занятия: согласовано клиентом или нет (pending = не согласовано).
-function approvalLook(approval: SessionApproval) {
-  return approval === 'approved'
-    ? { Icon: BadgeCheck, color: 'var(--color-success)', label: 'Согласовано' }
-    : { Icon: CircleDashed, color: 'var(--color-ink-muted)', label: 'Не согласовано' };
+// Четыре состояния занятия с галочками «как в мессенджере».
+type ApprovalStage = 'none' | 'sent' | 'delivered' | 'approved';
+const APPROVED_BLUE = '#2f6fed';
+
+function approvalStage(s: Session): ApprovalStage {
+  if (s.approval === 'approved') return 'approved';
+  if (s.approval === 'pending') return s.deliveredAt ? 'delivered' : 'sent';
+  return 'none';
 }
 
-function ApprovalBadge({ approval, size = 13 }: { approval: SessionApproval; size?: number }) {
-  const { Icon, color, label } = approvalLook(approval);
-  return <Icon size={size} className="shrink-0" style={{ color }} aria-label={label} />;
+function ApprovalBadge({ session, size = 14 }: { session: Session; size?: number }) {
+  const stage = approvalStage(session);
+  if (stage === 'none') {
+    return <CircleDashed size={size} className="shrink-0 text-[var(--color-ink-muted)]" aria-label="Не отправлено" />;
+  }
+  if (stage === 'sent') {
+    return <Check size={size} className="shrink-0 text-[var(--color-ink-muted)]" aria-label="Отправлено" />;
+  }
+  if (stage === 'delivered') {
+    return <CheckCheck size={size} className="shrink-0 text-[var(--color-ink-muted)]" aria-label="Получено клиентом" />;
+  }
+  return <CheckCheck size={size} className="shrink-0" style={{ color: APPROVED_BLUE }} aria-label="Согласовано клиентом" />;
 }
 
-// Подпись-легенда со значками для дневного вида.
+// Степпер 4 состояний для формы занятия — тренер ставит вручную.
+function ApprovalStepper({ value, onChange }: { value: ApprovalStage; onChange: (v: ApprovalStage) => void }) {
+  const items: Array<{ key: ApprovalStage; label: string; render: () => React.ReactNode }> = [
+    { key: 'none', label: 'Не отправлено', render: () => <CircleDashed size={14} className="text-[var(--color-ink-muted)]" /> },
+    { key: 'sent', label: 'Отправлено', render: () => <Check size={14} className="text-[var(--color-ink-muted)]" /> },
+    { key: 'delivered', label: 'Получено', render: () => <CheckCheck size={14} className="text-[var(--color-ink-muted)]" /> },
+    { key: 'approved', label: 'Согласовано', render: () => <CheckCheck size={14} style={{ color: APPROVED_BLUE }} /> },
+  ];
+  return (
+    <div className="grid grid-cols-4 gap-1.5">
+      {items.map((it) => {
+        const active = it.key === value;
+        return (
+          <button
+            key={it.key}
+            type="button"
+            onClick={() => onChange(it.key)}
+            className={`flex flex-col items-center gap-1 rounded-2xl px-1 py-2 text-[10px] font-medium ${
+              active ? 'bg-ink' : 'bg-[var(--color-chip)]'
+            }`}
+            style={active ? { color: '#ffffff' } : undefined}
+          >
+            <span className={active ? 'opacity-100' : 'opacity-80'}>
+              {active && it.key === 'approved' ? (
+                <CheckCheck size={14} style={{ color: APPROVED_BLUE }} />
+              ) : active ? (
+                it.key === 'none' ? <CircleDashed size={14} style={{ color: '#ffffff' }} />
+                  : it.key === 'sent' ? <Check size={14} style={{ color: '#ffffff' }} />
+                  : <CheckCheck size={14} style={{ color: '#ffffff' }} />
+              ) : (
+                it.render()
+              )}
+            </span>
+            <span className="leading-tight text-center">{it.label}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+// Подпись-легенда — 4 состояния галочек.
 function ApprovalLegend() {
   return (
     <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 px-5 pb-1 text-[10px] text-[var(--color-ink-muted)]">
       <span className="flex items-center gap-1">
-        <BadgeCheck size={11} style={{ color: 'var(--color-success)' }} /> согласовано
+        <CircleDashed size={11} className="text-[var(--color-ink-muted)]" /> не отправлено
       </span>
       <span className="flex items-center gap-1">
-        <CircleDashed size={11} style={{ color: 'var(--color-ink-muted)' }} /> не согласовано
+        <Check size={11} className="text-[var(--color-ink-muted)]" /> отправлено
+      </span>
+      <span className="flex items-center gap-1">
+        <CheckCheck size={11} className="text-[var(--color-ink-muted)]" /> получено
+      </span>
+      <span className="flex items-center gap-1">
+        <CheckCheck size={11} style={{ color: APPROVED_BLUE }} /> согласовано
       </span>
     </div>
   );
@@ -302,7 +360,7 @@ function DayView({ date, sessions, onPick }: { date: Date; sessions: Session[]; 
               <div className="flex items-center gap-1.5">
                 <span className="shrink-0 text-[12px] font-bold tabular-nums">{s.startTime}</span>
                 <span className="min-w-0 flex-1 truncate text-[12px] font-semibold">{fullName(s.clientFirstName, s.clientLastName)}</span>
-                <ApprovalBadge approval={s.approval} />
+                <ApprovalBadge session={s} />
               </div>
               <div className="truncate text-[11px] text-[var(--color-ink-muted)]">
                 {[s.title, s.location, `${s.durationMin} мин`].filter(Boolean).join(' · ')}
@@ -509,11 +567,16 @@ function SessionForm({
   const [location, setLocation] = useState(session?.location ?? LOCATIONS[0]);
   const [title, setTitle] = useState(session?.title ?? '');
   const [typePickerOpen, setTypePickerOpen] = useState(false);
-  // Бинарное состояние: согласовано клиентом или нет.
-  const [approved, setApproved] = useState<boolean>(session?.approval === 'approved');
+  // 4 состояния «как в мессенджере»: не отправлено / отправлено / получено / согласовано.
+  const [stage, setStage] = useState<ApprovalStage>(() => (session ? approvalStage(session) : 'none'));
 
   const save = async () => {
     if (!clientId) { alert('Выберите клиента'); return; }
+    const approval: SessionApproval =
+      stage === 'approved' ? 'approved' : stage === 'none' ? 'none' : 'pending';
+    let deliveredAt: string | null;
+    if (stage === 'none' || stage === 'sent') deliveredAt = null;
+    else deliveredAt = session?.deliveredAt ?? new Date().toISOString();
     const input: SessionInput = {
       clientId,
       date,
@@ -521,7 +584,8 @@ function SessionForm({
       durationMin: duration,
       location: location || null,
       title: title.trim() || null,
-      approval: approved ? 'approved' : 'none',
+      approval,
+      deliveredAt,
     };
     if (session) await updateMut.mutateAsync({ id: session.id, input });
     else await createMut.mutateAsync(input);
@@ -607,19 +671,9 @@ function SessionForm({
         </div>
       </Field>
 
-      <button
-        type="button"
-        onClick={() => setApproved((v) => !v)}
-        className="flex w-full items-center gap-3 rounded-2xl bg-[var(--color-card)] px-4 py-3.5 text-left"
-      >
-        <Checkbox checked={approved} />
-        <span className="flex-1 text-[14px] font-medium">Согласовано клиентом</span>
-        {approved ? (
-          <BadgeCheck size={16} style={{ color: 'var(--color-success)' }} />
-        ) : (
-          <CircleDashed size={16} className="text-[var(--color-ink-muted)]" />
-        )}
-      </button>
+      <Field label="Статус согласования">
+        <ApprovalStepper value={stage} onChange={setStage} />
+      </Field>
 
       <button
         onClick={save}

@@ -131,6 +131,7 @@ export type Session = {
   title: string | null;
   status: SessionStatus;
   approval: SessionApproval;
+  deliveredAt: string | null;   // ✓✓ серые: клиент получил уведомление
   note: string | null;
   createdAt: string;
 };
@@ -145,6 +146,7 @@ export type SessionInput = {
   title?: string | null;
   status?: SessionStatus;
   approval?: SessionApproval;
+  deliveredAt?: string | null;          // undefined — не трогать; null — сброс; ISO — установить
   note?: string | null;
 };
 

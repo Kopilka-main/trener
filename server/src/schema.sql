@@ -109,6 +109,7 @@ CREATE TABLE IF NOT EXISTS sessions (
   title TEXT,
   status TEXT NOT NULL DEFAULT 'planned' CHECK (status IN ('planned', 'completed', 'cancelled')),
   approval TEXT NOT NULL DEFAULT 'none' CHECK (approval IN ('none', 'pending', 'approved')),
+  delivered_at TEXT,                                  -- когда клиент получил уведомление о занятии
   note TEXT,
   created_at TEXT NOT NULL
 );
@@ -156,7 +157,9 @@ CREATE INDEX IF NOT EXISTS idx_packages_client ON payment_packages(client_id, st
 CREATE TABLE IF NOT EXISTS conversations (
   id TEXT PRIMARY KEY,
   client_id TEXT NOT NULL UNIQUE REFERENCES clients(id) ON DELETE CASCADE,
-  trainer_last_read_at TEXT,
+  trainer_last_received_at TEXT,                      -- последний раз тренер опрашивал сообщения
+  trainer_last_read_at TEXT,                          -- последний раз тренер открыл диалог
+  client_last_received_at TEXT,
   client_last_read_at TEXT
 );
 

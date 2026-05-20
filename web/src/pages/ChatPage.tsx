@@ -1,14 +1,16 @@
 import { useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { Send } from 'lucide-react';
+import { Check, CheckCheck, Send } from 'lucide-react';
 import { ScreenHeader } from '../components/ScreenHeader';
 import { Avatar } from '../components/Avatar';
 import { useClient } from '../api/clients';
 import { useTrainer } from '../api/trainer';
-import { useConversationByClient, useMarkRead, useMessages, useSendMessage } from '../api/chat';
+import { useConversation, useConversationByClient, useMarkRead, useMessages, useSendMessage } from '../api/chat';
 import { DEMO_CLIENT_ID } from '../lib/routes';
 import { fullName } from '../lib/initials';
-import type { ChatMessage } from '../api/chat';
+import type { ChatMessage, Conversation } from '../api/chat';
+
+const READ_BLUE = '#2f6fed';
 
 // Окно диалога. Тренер: /trainer/chat/:clientId; клиент: /client/chat (id = демо).
 export function ChatPage() {
@@ -18,7 +20,9 @@ export function ChatPage() {
   const clientId = params.clientId || DEMO_CLIENT_ID;
 
   const { data: conv } = useConversationByClient(clientId);
-  const { data: messages = [] } = useMessages(conv?.id);
+  const { data: messages = [] } = useMessages(conv?.id, role);
+  // Состояние диалога (timestamps received/read обеих сторон) — для галочек.
+  const { data: convState } = useConversation(conv?.id);
   const sendMut = useSendMessage(conv?.id ?? '');
   const markRead = useMarkRead();
   const { data: client } = useClient(clientId);
@@ -92,7 +96,7 @@ export function ChatPage() {
           </div>
         )}
         {messages.map((m) => (
-          <Bubble key={m.id} message={m} mine={m.senderRole === role} />
+          <Bubble key={m.id} message={m} mine={m.senderRole === role} conv={convState} role={role} />
         ))}
       </div>
 
@@ -125,7 +129,18 @@ export function ChatPage() {
   );
 }
 
-function Bubble({ message, mine }: { message: ChatMessage; mine: boolean }) {
+function Bubble({
+  message,
+  mine,
+  conv,
+  role,
+}: {
+  message: ChatMessage;
+  mine: boolean;
+  conv: Conversation | undefined;
+  role: 'trainer' | 'client';
+}) {
+  const status = mine ? messageStatus(message, conv, role) : null;
   return (
     <div className={`flex ${mine ? 'justify-end' : 'justify-start'}`}>
       <div
@@ -136,14 +151,35 @@ function Bubble({ message, mine }: { message: ChatMessage; mine: boolean }) {
       >
         <div className="whitespace-pre-wrap break-words">{message.body}</div>
         <div
-          className={`mt-0.5 text-right text-[10px] ${mine ? '' : 'text-[var(--color-ink-muted)]'}`}
-          style={mine ? { color: 'rgba(255,255,255,0.7)' } : undefined}
+          className="mt-0.5 flex items-center justify-end gap-1 text-[10px]"
+          style={mine ? { color: 'rgba(255,255,255,0.7)' } : { color: 'var(--color-ink-muted)' }}
         >
-          {formatHM(message.createdAt)}
+          <span>{formatHM(message.createdAt)}</span>
+          {mine && status && <StatusTick status={status} />}
         </div>
       </div>
     </div>
   );
+}
+
+function StatusTick({ status }: { status: 'sent' | 'delivered' | 'read' }) {
+  if (status === 'sent') return <Check size={12} className="shrink-0" />;
+  if (status === 'delivered') return <CheckCheck size={12} className="shrink-0" />;
+  return <CheckCheck size={12} className="shrink-0" style={{ color: READ_BLUE }} />;
+}
+
+function messageStatus(
+  msg: ChatMessage,
+  conv: Conversation | undefined,
+  role: 'trainer' | 'client'
+): 'sent' | 'delivered' | 'read' {
+  if (!conv) return 'sent';
+  // Смотрим timestamps другой стороны.
+  const otherReceivedAt = role === 'trainer' ? conv.clientLastReceivedAt : conv.trainerLastReceivedAt;
+  const otherReadAt = role === 'trainer' ? conv.clientLastReadAt : conv.trainerLastReadAt;
+  if (otherReadAt && msg.createdAt <= otherReadAt) return 'read';
+  if (otherReceivedAt && msg.createdAt <= otherReceivedAt) return 'delivered';
+  return 'sent';
 }
 
 function formatHM(iso: string): string {

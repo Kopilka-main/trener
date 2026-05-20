@@ -107,6 +107,7 @@ export type SessionRow = {
   title: string | null;
   status: 'planned' | 'completed' | 'cancelled';
   approval: 'none' | 'pending' | 'approved';
+  delivered_at: string | null;
   note: string | null;
   created_at: string;
 };
@@ -114,7 +115,9 @@ export type SessionRow = {
 export type ConversationRow = {
   id: string;
   client_id: string;
+  trainer_last_received_at: string | null;
   trainer_last_read_at: string | null;
+  client_last_received_at: string | null;
   client_last_read_at: string | null;
 };
 

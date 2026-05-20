@@ -107,26 +107,51 @@ function toMsg(r: MessageRow) {
 }
 
 // Получить диалог по clientId с авто-созданием и сразу сообщения.
+function convToApi(conv: ConversationRow) {
+  return {
+    id: conv.id,
+    clientId: conv.client_id,
+    trainerLastReceivedAt: conv.trainer_last_received_at,
+    trainerLastReadAt: conv.trainer_last_read_at,
+    clientLastReceivedAt: conv.client_last_received_at,
+    clientLastReadAt: conv.client_last_read_at,
+  };
+}
+
 chatRouter.get(
   '/by-client/:clientId',
   asyncHandler((req, res) => {
     const conv = getOrCreateConversation(req.params.clientId);
-    res.json({
-      id: conv.id,
-      clientId: conv.client_id,
-      trainerLastReadAt: conv.trainer_last_read_at,
-      clientLastReadAt: conv.client_last_read_at,
-    });
+    res.json(convToApi(conv));
   })
 );
+
+const markTrainerReceivedStmt = db.prepare(`UPDATE conversations SET trainer_last_received_at = ? WHERE id = ?`);
+const markClientReceivedStmt = db.prepare(`UPDATE conversations SET client_last_received_at = ? WHERE id = ?`);
 
 chatRouter.get(
   '/:id/messages',
   asyncHandler((req, res) => {
     const conv = requireRow(conversationByIdStmt.get(req.params.id), 'Conversation');
     const since = String(req.query.since ?? '');
+    const role = req.query.role === 'trainer' || req.query.role === 'client' ? req.query.role : null;
     const rows = since ? messagesSinceStmt.all(conv.id, since) : messagesAllStmt.all(conv.id);
+    // Опрос «другой стороны» = подтверждение получения её сообщений (✓✓ серые).
+    if (role) {
+      const ts = new Date().toISOString();
+      if (role === 'trainer') markTrainerReceivedStmt.run(ts, conv.id);
+      else markClientReceivedStmt.run(ts, conv.id);
+    }
     res.json(rows.map(toMsg));
+  })
+);
+
+// Полный объект conversation (нужен фронту для расчёта галочек ✓ / ✓✓ / ✓✓ синие).
+chatRouter.get(
+  '/:id',
+  asyncHandler((req, res) => {
+    const conv = requireRow(conversationByIdStmt.get(req.params.id), 'Conversation');
+    res.json(convToApi(conv));
   })
 );
 

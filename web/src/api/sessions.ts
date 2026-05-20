@@ -37,3 +37,12 @@ export function useDeleteSession() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['sessions'] }),
   });
 }
+
+// Имитация «получения» уведомления клиентом — ставит deliveredAt.
+export function useDeliverSession() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.patch<Session>(`/api/sessions/${id}/deliver`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['sessions'] }),
+  });
+}

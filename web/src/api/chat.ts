@@ -15,7 +15,9 @@ export type ConversationListItem = {
 export type Conversation = {
   id: string;
   clientId: string;
+  trainerLastReceivedAt: string | null;
   trainerLastReadAt: string | null;
+  clientLastReceivedAt: string | null;
   clientLastReadAt: string | null;
 };
 
@@ -45,12 +47,29 @@ export function useConversationByClient(clientId: string | undefined) {
   });
 }
 
-// Сообщения диалога. Polling каждые 15с (можно сузить через since=).
-export function useMessages(conversationId: string | undefined) {
+// Сообщения диалога. Polling каждые 15с. role= обновляет «received»
+// другой стороны → используется для отображения галочек ✓✓ серые.
+export function useMessages(conversationId: string | undefined, role?: 'trainer' | 'client') {
   return useQuery({
-    queryKey: ['messages', conversationId],
+    queryKey: ['messages', conversationId, role ?? ''],
     enabled: !!conversationId,
-    queryFn: () => api.get<ChatMessage[]>(`/api/conversations/${conversationId}/messages`),
+    queryFn: () => {
+      const url = role
+        ? `/api/conversations/${conversationId}/messages?role=${role}`
+        : `/api/conversations/${conversationId}/messages`;
+      return api.get<ChatMessage[]>(url);
+    },
+    refetchInterval: 15_000,
+  });
+}
+
+// Отдельно опрашиваем «состояние диалога» — нужно для отображения галочек
+// (∆ между my message.createdAt и other.last_received / last_read).
+export function useConversation(conversationId: string | undefined) {
+  return useQuery({
+    queryKey: ['conversation-state', conversationId],
+    enabled: !!conversationId,
+    queryFn: () => api.get<Conversation>(`/api/conversations/${conversationId}`),
     refetchInterval: 15_000,
   });
 }

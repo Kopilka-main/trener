@@ -331,6 +331,9 @@ export function ensureSchemaUpgrades(database: typeof defaultDb = defaultDb) {
   };
   addColumn('clients', 'account_id', 'TEXT');
   addColumn('sessions', 'approval', "TEXT NOT NULL DEFAULT 'none'");
+  addColumn('sessions', 'delivered_at', 'TEXT');
+  addColumn('conversations', 'trainer_last_received_at', 'TEXT');
+  addColumn('conversations', 'client_last_received_at', 'TEXT');
 }
 
 // Нормализация: каждый подход тренировки хранится как отдельная запись упражнения (1 подход).
