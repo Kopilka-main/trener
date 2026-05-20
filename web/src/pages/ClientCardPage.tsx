@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { AlertTriangle, BarChart3, ChevronDown, ChevronRight, ChevronUp, Dumbbell, MessageSquare, Pencil, Plus, Trophy, Wallet, X } from 'lucide-react';
+import { AlertTriangle, BarChart3, CalendarDays, ChevronDown, ChevronRight, ChevronUp, Dumbbell, MessageSquare, Pencil, Plus, Trophy, Wallet, X } from 'lucide-react';
 import { ScreenHeader } from '../components/ScreenHeader';
 import { Avatar } from '../components/Avatar';
 import { Field, TextArea, TextInput } from '../components/Field';
@@ -91,22 +91,33 @@ export function ClientCardPage() {
           <ChevronRight size={18} className="shrink-0" />
         </button>
 
-        {/* Чат с клиентом */}
-        <button
-          onClick={() => navigate(`/trainer/chat/${id}`)}
-          className="flex w-full items-center gap-3 rounded-2xl bg-[var(--color-card)] p-4 text-left"
-        >
-          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[var(--color-chip)]">
-            <MessageSquare size={20} />
-          </span>
-          <span className="min-w-0 flex-1">
-            <span className="block text-[15px] font-bold">Написать клиенту</span>
-            <span className="block text-[12px] text-[var(--color-ink-muted)]">
-              чат тренер ↔ клиент
+        {/* Две вторичные CTA — чат и календарь по клиенту */}
+        <div className="grid grid-cols-2 gap-3">
+          <button
+            onClick={() => navigate(`/trainer/chat/${id}`)}
+            className="flex flex-col items-start gap-2 rounded-2xl bg-[var(--color-card)] p-4 text-left"
+          >
+            <span className="flex h-11 w-11 items-center justify-center rounded-full bg-[var(--color-chip)]">
+              <MessageSquare size={20} />
             </span>
-          </span>
-          <ChevronRight size={18} className="shrink-0 text-[var(--color-ink-muted)]" />
-        </button>
+            <span>
+              <span className="block text-[14px] font-bold leading-tight">Написать</span>
+              <span className="block text-[11px] text-[var(--color-ink-muted)]">чат с клиентом</span>
+            </span>
+          </button>
+          <button
+            onClick={() => navigate(`/trainer/calendar?clientId=${id}`)}
+            className="flex flex-col items-start gap-2 rounded-2xl bg-[var(--color-card)] p-4 text-left"
+          >
+            <span className="flex h-11 w-11 items-center justify-center rounded-full bg-[var(--color-chip)]">
+              <CalendarDays size={20} />
+            </span>
+            <span>
+              <span className="block text-[14px] font-bold leading-tight">Календарь</span>
+              <span className="block text-[11px] text-[var(--color-ink-muted)]">занятия клиента</span>
+            </span>
+          </button>
+        </div>
 
         {myAlert && (
           <div

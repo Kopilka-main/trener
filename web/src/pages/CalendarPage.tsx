@@ -43,6 +43,14 @@ export function CalendarPage() {
   const [creating, setCreating] = useState(false);
   const [anchor, setAnchor] = useState<Date>(new Date());
   const [editing, setEditing] = useState<Session | null>(null);
+  // Тап по пустому слоту: открыть форму с предзаполненными датой и временем.
+  const [createAt, setCreateAt] = useState<{ date: string; startTime: string } | null>(null);
+
+  const openCreateAt = (date: Date, hour: number) => {
+    setCreateAt({ date: toISODate(date), startTime: `${String(hour).padStart(2, '0')}:00` });
+    setEditing(null);
+    setCreating(false);
+  };
 
   // Диапазон дат для загрузки занятий зависит от вида.
   const range = useMemo(() => {
@@ -92,11 +100,12 @@ export function CalendarPage() {
     return parts.join(' · ');
   }, [view, anchor, visible.length, totalMin]);
 
-  const showForm = creating || editing !== null;
+  const showForm = creating || editing !== null || createAt !== null;
 
   const closeForm = () => {
     setEditing(null);
     setCreating(false);
+    setCreateAt(null);
   };
 
   return (
@@ -123,7 +132,13 @@ export function CalendarPage() {
 
       {showForm ? (
         <div className="flex-1 overflow-y-auto">
-          <SessionForm session={editing} defaultDate={toISODate(anchor)} defaultClientId={clientId} onClose={closeForm} />
+          <SessionForm
+            session={editing}
+            defaultDate={createAt?.date ?? toISODate(anchor)}
+            defaultStartTime={createAt?.startTime}
+            defaultClientId={clientId}
+            onClose={closeForm}
+          />
         </div>
       ) : (
         <>
@@ -154,13 +169,21 @@ export function CalendarPage() {
           {view === 'week' && <WeekStripeLegend />}
 
           <div className="flex-1 overflow-y-auto pb-6">
-            {view === 'day' && <DayView date={anchor} sessions={sessions} onPick={setEditing} />}
+            {view === 'day' && (
+              <DayView
+                date={anchor}
+                sessions={sessions}
+                onPick={setEditing}
+                onSlot={(hour) => openCreateAt(anchor, hour)}
+              />
+            )}
             {view === 'week' && (
               <WeekView
                 dates={weekDates(anchor)}
                 sessions={sessions}
                 onPick={setEditing}
                 onPickDay={(d) => { setAnchor(d); setView('day'); }}
+                onSlot={openCreateAt}
               />
             )}
             {view === 'month' && (
@@ -313,7 +336,17 @@ function WeekStripeLegend() {
   );
 }
 
-function DayView({ date, sessions, onPick }: { date: Date; sessions: Session[]; onPick: (s: Session) => void }) {
+function DayView({
+  date,
+  sessions,
+  onPick,
+  onSlot,
+}: {
+  date: Date;
+  sessions: Session[];
+  onPick: (s: Session) => void;
+  onSlot: (hour: number) => void;
+}) {
   const HOUR_H = 56;
   const hours = Array.from({ length: CAL_HOURS }, (_, i) => CAL_START_HOUR + i);
   const items = sessions
@@ -338,11 +371,19 @@ function DayView({ date, sessions, onPick }: { date: Date; sessions: Session[]; 
         ))}
       </div>
       <div className="relative flex-1 border-l border-[var(--color-line)]" style={{ height: gridH }}>
+        {/* Кликабельные слоты по часам — за блоками занятий */}
         {hours.map((h, i) => (
-          <div key={h} className="absolute inset-x-0 border-t border-[var(--color-line)]" style={{ top: i * HOUR_H }} />
+          <button
+            key={`slot-${h}`}
+            type="button"
+            onClick={() => onSlot(h)}
+            className="absolute inset-x-0 border-t border-[var(--color-line)] hover:bg-black/[0.02] active:bg-black/[0.04]"
+            style={{ top: i * HOUR_H, height: HOUR_H }}
+            aria-label={`Добавить занятие на ${String(h).padStart(2, '0')}:00`}
+          />
         ))}
         {showNow && nowTop >= 0 && nowTop <= gridH && (
-          <div className="absolute inset-x-0 z-10 flex items-center" style={{ top: nowTop }}>
+          <div className="pointer-events-none absolute inset-x-0 z-10 flex items-center" style={{ top: nowTop }}>
             <div className="h-2 w-2 -translate-x-1 rounded-full bg-[var(--color-danger)]" />
             <div className="h-px flex-1 bg-[var(--color-danger)]" />
           </div>
@@ -354,7 +395,7 @@ function DayView({ date, sessions, onPick }: { date: Date; sessions: Session[]; 
             <button
               key={s.id}
               onClick={() => onPick(s)}
-              className="absolute left-1.5 right-1.5 overflow-hidden rounded-xl border-l-[4px] bg-[var(--color-card)] px-2.5 py-1.5 text-left shadow-sm"
+              className="absolute left-1.5 right-1.5 z-10 overflow-hidden rounded-xl border-l-[4px] bg-[var(--color-card)] px-2.5 py-1.5 text-left shadow-sm"
               style={{ top, height, borderLeftColor: approvalStripeColor(s.approval), opacity: s.status === 'completed' ? 0.5 : 1 }}
             >
               <div className="flex items-center gap-1.5">
@@ -368,11 +409,6 @@ function DayView({ date, sessions, onPick }: { date: Date; sessions: Session[]; 
             </button>
           );
         })}
-        {items.length === 0 && (
-          <div className="absolute inset-x-0 top-10 text-center text-sm text-[var(--color-ink-muted)]">
-            На этот день занятий нет
-          </div>
-        )}
       </div>
     </div>
   );
@@ -383,11 +419,13 @@ function WeekView({
   sessions,
   onPick,
   onPickDay,
+  onSlot,
 }: {
   dates: Date[];
   sessions: Session[];
   onPick: (s: Session) => void;
   onPickDay: (d: Date) => void;
+  onSlot: (date: Date, hour: number) => void;
 }) {
   const HOUR_H = 48;
   const hours = Array.from({ length: CAL_HOURS }, (_, i) => CAL_START_HOUR + i);
@@ -436,8 +474,16 @@ function WeekView({
                 className="relative border-l border-[var(--color-line)]"
                 style={{ height: gridH }}
               >
+                {/* Кликабельные слоты по часам */}
                 {hours.map((h, i) => (
-                  <div key={h} className="absolute inset-x-0 border-t border-[var(--color-line)]" style={{ top: i * HOUR_H }} />
+                  <button
+                    key={`slot-${h}`}
+                    type="button"
+                    onClick={() => onSlot(d, h)}
+                    className="absolute inset-x-0 border-t border-[var(--color-line)] hover:bg-black/[0.02] active:bg-black/[0.04]"
+                    style={{ top: i * HOUR_H, height: HOUR_H }}
+                    aria-label={`Добавить занятие ${DAY_SHORT[weekdayMon(d)]} ${d.getDate()} в ${String(h).padStart(2, '0')}:00`}
+                  />
                 ))}
                 {items.map((s) => {
                   const top = (timeToMin(s.startTime) - CAL_START_HOUR * 60) / 60 * HOUR_H;
@@ -446,7 +492,7 @@ function WeekView({
                     <button
                       key={s.id}
                       onClick={() => onPick(s)}
-                      className="absolute inset-x-[2px] overflow-hidden rounded-md border-l-[3px] bg-[var(--color-card)] px-1 py-0.5 text-left"
+                      className="absolute inset-x-[2px] z-10 overflow-hidden rounded-md border-l-[3px] bg-[var(--color-card)] px-1 py-0.5 text-left"
                       style={{ top, height, borderLeftColor: approvalStripeColor(s.approval), opacity: s.status === 'completed' ? 0.5 : 1 }}
                     >
                       <div className="truncate text-[9px] font-bold leading-tight tabular-nums">{s.startTime}</div>
@@ -546,11 +592,13 @@ const DURATIONS = [30, 45, 60, 90];
 function SessionForm({
   session,
   defaultDate,
+  defaultStartTime,
   defaultClientId,
   onClose,
 }: {
   session: Session | null;
   defaultDate: string;
+  defaultStartTime?: string;
   defaultClientId?: string;
   onClose: () => void;
 }) {
@@ -562,7 +610,7 @@ function SessionForm({
 
   const [clientId, setClientId] = useState(session?.clientId ?? defaultClientId ?? '');
   const [date, setDate] = useState(session?.date ?? defaultDate);
-  const [time, setTime] = useState(session?.startTime ?? '10:00');
+  const [time, setTime] = useState(session?.startTime ?? defaultStartTime ?? '10:00');
   const [duration, setDuration] = useState(session?.durationMin ?? 60);
   const [location, setLocation] = useState(session?.location ?? LOCATIONS[0]);
   const [title, setTitle] = useState(session?.title ?? '');
