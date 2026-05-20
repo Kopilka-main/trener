@@ -25,13 +25,8 @@ import { RegisterPage } from './pages/RegisterPage';
 import { DevInspector } from './components/DevInspector';
 import { CLIENT_BASE, TRAINER_BASE } from './lib/routes';
 
-// Адреса, на которых виден нижний таб-бар (точное совпадение).
-const TRAINER_TAB_PATHS = [
-  `${TRAINER_BASE}/clients`,
-  `${TRAINER_BASE}/exercises`,
-  `${TRAINER_BASE}/calendar`,
-  `${TRAINER_BASE}/chat`,
-];
+// У тренера навигация через главный экран (/trainer/home) с плитками — таб-бар не нужен.
+// Клиенту таб-бар нужен (нет hub-экрана).
 const CLIENT_TAB_PATHS = [
   `${CLIENT_BASE}/workouts`,
   `${CLIENT_BASE}/exercises`,
@@ -59,7 +54,7 @@ export function App() {
   const isAuthRoute = path === `${TRAINER_BASE}/login` || path === `${TRAINER_BASE}/register`;
   const home = isClient ? `${CLIENT_BASE}/workouts` : `${TRAINER_BASE}/home`;
 
-  const showTabs = authed && (isClient ? CLIENT_TAB_PATHS : TRAINER_TAB_PATHS).includes(path);
+  const showTabs = isClient && authed && CLIENT_TAB_PATHS.includes(path);
 
   return (
     <div className="app-shell">

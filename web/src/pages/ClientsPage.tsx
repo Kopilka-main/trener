@@ -1,8 +1,7 @@
 import { useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AlertTriangle, CalendarDays, ChevronDown, ChevronRight, ChevronUp, Plus, Search } from 'lucide-react';
+import { AlertTriangle, ChevronDown, ChevronRight, ChevronUp, Plus, Search } from 'lucide-react';
 import { useClients } from '../api/clients';
-import { useTrainer } from '../api/trainer';
 import { useTrainerAlerts, type TrainerAlert } from '../api/alerts';
 import { Avatar } from '../components/Avatar';
 import { AlphaIndex } from '../components/AlphaIndex';
@@ -15,10 +14,8 @@ export function ClientsPage() {
   const navigate = useNavigate();
   const [query, setQuery] = useState('');
   const { data: clients = [], isLoading } = useClients(query);
-  const { data: trainer } = useTrainer();
   const { data: alerts = [] } = useTrainerAlerts();
   const listRef = useRef<HTMLDivElement>(null);
-  const showTrainer = !!trainer && !query;
 
   const grouped = useMemo(() => {
     const sorted = [...clients].sort((a, b) => a.firstName.localeCompare(b.firstName, 'ru'));
@@ -31,11 +28,7 @@ export function ClientsPage() {
     return Array.from(map.entries()).sort(([a], [b]) => a.localeCompare(b, 'ru'));
   }, [clients]);
 
-  const availableLetters = useMemo(() => {
-    const set = new Set(grouped.map(([l]) => l));
-    if (showTrainer) set.add('#');
-    return set;
-  }, [grouped, showTrainer]);
+  const availableLetters = useMemo(() => new Set(grouped.map(([l]) => l)), [grouped]);
 
   const scrollToLetter = (letter: string) => {
     const el = document.getElementById(`letter-${letter}`);
@@ -54,23 +47,14 @@ export function ClientsPage() {
       <header className="px-5 pt-3 pb-3">
         <div className="flex items-start justify-between">
           <h1 className="text-[34px] font-bold leading-tight">Клиенты</h1>
-          <div className="flex shrink-0 items-center gap-2">
-            <button
-              onClick={() => navigate(`${appBase()}/calendar`)}
-              className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--color-chip)]"
-              aria-label="Календарь"
-            >
-              <CalendarDays size={18} />
-            </button>
-            <button
-              onClick={() => navigate(`${appBase()}/clients/new`)}
-              className="flex h-10 w-10 items-center justify-center rounded-full"
-              style={{ background: '#1a1a1a', color: '#ffffff' }}
-              aria-label="Добавить клиента"
-            >
-              <Plus size={18} />
-            </button>
-          </div>
+          <button
+            onClick={() => navigate(`${appBase()}/clients/new`)}
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
+            style={{ background: '#1a1a1a', color: '#ffffff' }}
+            aria-label="Добавить клиента"
+          >
+            <Plus size={18} />
+          </button>
         </div>
         <div className="mt-3 relative">
           <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--color-ink-muted)]" />
@@ -91,29 +75,6 @@ export function ClientsPage() {
             <div className="px-2 py-10 text-center text-sm text-[var(--color-ink-muted)]">
               {query ? 'Ничего не найдено' : 'Список пуст. Добавьте первого клиента.'}
             </div>
-          )}
-          {showTrainer && trainer && (
-            <section id="letter-#" className="mb-1">
-              <h2 className="px-1 pt-2 pb-1 text-[12px] font-medium text-[var(--color-ink-muted)]">#</h2>
-              <ul className="space-y-2">
-                <li>
-                  <button
-                    type="button"
-                    onClick={() => navigate(`${appBase()}/profile`)}
-                    className="flex w-full items-center gap-3 rounded-2xl bg-[var(--color-card)] px-3 py-2.5 text-left active:scale-[0.99] transition-transform"
-                  >
-                    <Avatar firstName={trainer.firstName} lastName={trainer.lastName} size={44} />
-                    <div className="min-w-0 flex-1">
-                      <div className="text-[15px] font-semibold">Я</div>
-                      <div className="truncate text-[12px] text-[var(--color-ink-muted)]">
-                        {fullName(trainer.firstName, trainer.lastName)}
-                      </div>
-                    </div>
-                    <ChevronRight size={16} className="shrink-0 text-[var(--color-ink-muted)]" />
-                  </button>
-                </li>
-              </ul>
-            </section>
           )}
           {grouped.map(([letter, list]) => (
             <section key={letter} id={`letter-${letter}`} className="mb-1">
