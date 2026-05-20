@@ -37,6 +37,7 @@ export function backTarget(pathname: string, search = ''): string {
     if (!isClient && segs[2]) return `${TRAINER_BASE}/chat`;
     return sectionHome;
   }
+  if (sub === 'notifications') return `${TRAINER_BASE}/chat`;
   if (sub === 'calendar') {
     const clientId = new URLSearchParams(search).get('clientId');
     // Календарь, открытый из карточки клиента, возвращает в карточку.

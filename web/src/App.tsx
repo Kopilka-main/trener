@@ -18,6 +18,7 @@ import { AccountingPage } from './pages/AccountingPage';
 import { GymsPage } from './pages/GymsPage';
 import { ChatListPage } from './pages/ChatListPage';
 import { ChatPage } from './pages/ChatPage';
+import { NotificationsPage } from './pages/NotificationsPage';
 import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
 import { DevInspector } from './components/DevInspector';
@@ -105,6 +106,7 @@ export function App() {
             <Route path={`${TRAINER_BASE}/gyms`} element={<GymsPage />} />
             <Route path={`${TRAINER_BASE}/chat`} element={<ChatListPage />} />
             <Route path={`${TRAINER_BASE}/chat/:clientId`} element={<ChatPage />} />
+            <Route path={`${TRAINER_BASE}/notifications`} element={<NotificationsPage />} />
             <Route path="*" element={<Navigate to={authed ? home : `${TRAINER_BASE}/login`} replace />} />
           </Routes>
         )}
