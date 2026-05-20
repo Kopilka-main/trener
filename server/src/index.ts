@@ -14,7 +14,7 @@ import { expensesRouter } from './routes/expenses.js';
 import { accountingRouter } from './routes/accounting.js';
 import { clientStatsRouter } from './routes/client-stats.js';
 import { chatRouter } from './routes/chat.js';
-import { runSeedIfEmpty, seedSessionsIfEmpty, seedTrainerIfEmpty, ensureTrainerShareCode, ensureSchemaUpgrades, normalizeWorkouts } from './seed.js';
+import { runSeedIfEmpty, seedSessionsIfEmpty, seedTrainerIfEmpty, ensureTrainerShareCode, ensureSchemaUpgrades, normalizeWorkouts, seedDemoPackagesIfEmpty, seedDemoChatIfEmpty } from './seed.js';
 
 const app = express();
 app.use(cors());
@@ -57,6 +57,8 @@ seedTrainerIfEmpty(db);
 ensureTrainerShareCode(db);
 ensureSchemaUpgrades(db);
 normalizeWorkouts(db);
+seedDemoPackagesIfEmpty(db);
+seedDemoChatIfEmpty(db);
 
 app.listen(PORT, () => {
   console.log(`[trener-server] http://localhost:${PORT}`);

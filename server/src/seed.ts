@@ -392,6 +392,85 @@ export function normalizeWorkouts(database: typeof defaultDb = defaultDb) {
   if (fixed > 0) console.log(`[migrate] normalized ${fixed} workout(s) to one-set-per-exercise`);
 }
 
+// Демо-пакеты: создаём, если таблица пуста — чтобы тренер сразу видел
+// «осталось N тренировок» в карточке и баннер уведомлений на главной.
+export function seedDemoPackagesIfEmpty(database: typeof defaultDb = defaultDb) {
+  const count = database.prepare<[], { c: number }>('SELECT COUNT(*) AS c FROM payment_packages').get();
+  if (count && count.c > 0) return;
+  // Должны существовать клиенты (cl_001, cl_009) — иначе FK не пройдёт.
+  const cl = database.prepare<[string], { id: string }>('SELECT id FROM clients WHERE id = ?');
+  if (!cl.get('cl_001')) return;
+
+  const insert = database.prepare(`
+    INSERT INTO payment_packages (
+      id, client_id, lessons_paid, price_per_lesson, total_paid,
+      workout_type, starts_at, status, note, created_at
+    ) VALUES (
+      @id, @client_id, @lessons_paid, @price_per_lesson, @total_paid,
+      @workout_type, @starts_at, 'active', @note, @created_at
+    )
+  `);
+  const today = new Date().toISOString().slice(0, 10);
+  insert.run({
+    id: 'pkg_demo_001',
+    client_id: 'cl_001',
+    lessons_paid: 3,
+    price_per_lesson: 2000,
+    total_paid: 6000,
+    workout_type: null,
+    starts_at: today,
+    note: 'Демо-пакет (мало осталось — сработает уведомление)',
+    created_at: now(),
+  });
+  if (cl.get('cl_009')) {
+    insert.run({
+      id: 'pkg_demo_002',
+      client_id: 'cl_009',
+      lessons_paid: 5,
+      price_per_lesson: 2500,
+      total_paid: 12500,
+      workout_type: 'Функционал',
+      starts_at: today,
+      note: 'Демо-пакет',
+      created_at: now(),
+    });
+  }
+  console.log('[seed] demo packages inserted');
+}
+
+// Демо-сообщения в чате от клиента — чтобы у тренера сразу были непрочитанные
+// и в табе «Чат» отображался бейдж.
+export function seedDemoChatIfEmpty(database: typeof defaultDb = defaultDb) {
+  const count = database.prepare<[], { c: number }>('SELECT COUNT(*) AS c FROM messages').get();
+  if (count && count.c > 0) return;
+  if (!database.prepare<[string], { id: string }>('SELECT id FROM clients WHERE id = ?').get('cl_001')) return;
+
+  database
+    .prepare('INSERT OR IGNORE INTO conversations (id, client_id) VALUES (?, ?)')
+    .run('conv_demo_001', 'cl_001');
+
+  const insMsg = database.prepare(`
+    INSERT INTO messages (id, conversation_id, sender_role, body, created_at)
+    VALUES (@id, @conversation_id, @sender_role, @body, @created_at)
+  `);
+  const ts = (offsetMin: number) => new Date(Date.now() - offsetMin * 60_000).toISOString();
+  insMsg.run({
+    id: 'msg_demo_001',
+    conversation_id: 'conv_demo_001',
+    sender_role: 'client',
+    body: 'Здравствуйте! Подскажите, во вторник в 18:00 силу делаем?',
+    created_at: ts(120),
+  });
+  insMsg.run({
+    id: 'msg_demo_002',
+    conversation_id: 'conv_demo_001',
+    sender_role: 'client',
+    body: 'И ещё — спина немного беспокоит, можно без становой? 🙏',
+    created_at: ts(60),
+  });
+  console.log('[seed] demo chat messages inserted');
+}
+
 if (import.meta.url === `file://${process.argv[1].replace(/\\/g, '/')}` || import.meta.url === `file:///${process.argv[1].replace(/\\/g, '/')}`) {
   runSeedIfEmpty();
   seedSessionsIfEmpty();
@@ -399,4 +478,6 @@ if (import.meta.url === `file://${process.argv[1].replace(/\\/g, '/')}` || impor
   ensureTrainerShareCode();
   ensureSchemaUpgrades();
   normalizeWorkouts();
+  seedDemoPackagesIfEmpty();
+  seedDemoChatIfEmpty();
 }
