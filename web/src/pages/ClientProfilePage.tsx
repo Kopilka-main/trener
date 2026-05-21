@@ -8,7 +8,6 @@ import { useClientWorkouts } from '../api/client-workouts';
 import { fullName } from '../lib/initials';
 import { calcAge, formatBirth } from '../lib/format';
 import { CLIENT_BASE, DEMO_CLIENT_ID } from '../lib/routes';
-import { ThemeToggle } from '../components/ThemeToggle';
 
 type LucideIcon = typeof Settings;
 
@@ -82,11 +81,6 @@ export function ClientProfilePage() {
         )}
 
         <div className="overflow-hidden rounded-2xl">
-          <div className="flex w-full items-center gap-3 border-b border-[var(--color-line)] bg-[var(--color-card)] px-4 py-3.5">
-            <Settings size={17} className="shrink-0 text-[var(--color-ink-muted)]" />
-            <span className="flex-1 text-[14px] font-medium">Тема</span>
-            <ThemeToggle />
-          </div>
           <SettingRow icon={Bell} label="Уведомления" last />
         </div>
 
