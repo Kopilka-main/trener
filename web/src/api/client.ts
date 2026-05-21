@@ -91,6 +91,52 @@ function mockResponse(method: string, fullPath: string): unknown | undefined {
     if (path === '/api/accounting/incomes') return mockIncomes;
     if (path === '/api/accounting/expenses') return [];
     if (path === '/api/alerts') return [];
+    if (path === '/api/trainer/alerts') {
+      // Алерты: оплаченные занятия заканчиваются у нескольких клиентов + 1 unpaid + 1 no_upcoming.
+      const pick = (i: number) => mockClients[i];
+      return [
+        {
+          type: 'low_balance',
+          severity: 'danger',
+          clientId: pick(0).id,
+          clientName: `${pick(0).firstName} ${pick(0).lastName}`,
+          remaining: 1,
+          message: 'Осталось 1 оплаченное занятие. Предложи продление пакета.',
+        },
+        {
+          type: 'low_balance',
+          severity: 'warn',
+          clientId: pick(3).id,
+          clientName: `${pick(3).firstName} ${pick(3).lastName}`,
+          remaining: 2,
+          message: 'Осталось 2 оплаченных занятия — пора напомнить о пакете.',
+        },
+        {
+          type: 'low_balance',
+          severity: 'warn',
+          clientId: pick(7).id,
+          clientName: `${pick(7).firstName} ${pick(7).lastName}`,
+          remaining: 3,
+          message: 'Осталось 3 оплаченных занятия. Скоро потребуется оплата.',
+        },
+        {
+          type: 'unpaid',
+          severity: 'danger',
+          clientId: pick(12).id,
+          clientName: `${pick(12).firstName} ${pick(12).lastName}`,
+          remaining: 0,
+          message: 'Оплата пакета просрочена на 4 дня. Запланированы 2 занятия без оплаты.',
+        },
+        {
+          type: 'no_upcoming',
+          severity: 'warn',
+          clientId: pick(5).id,
+          clientName: `${pick(5).firstName} ${pick(5).lastName}`,
+          remaining: 0,
+          message: 'Оплачен пакет, но на ближайшую неделю не назначено ни одного занятия.',
+        },
+      ];
+    }
     const cwMatch = path.match(/^\/api\/clients\/([^/]+)\/workouts$/);
     if (cwMatch) return { current: null, history: [] };
     if (path === '/api/clients/stats') return mockClients.map((c) => ({ clientId: c.id, totalWorkouts: 4 + (parseInt(c.id.replace('c', ''), 10) || 0) % 12, lastWorkoutAt: null }));
