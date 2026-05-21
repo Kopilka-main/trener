@@ -31,3 +31,6 @@ Copilot_*.png
 # design reference (распакованный архив дизайн-системы GYM)
 _design_inbox/
 *.zip
+
+# временная папка для деплоя на gh-pages
+.deploy-tmp/
