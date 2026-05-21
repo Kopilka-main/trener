@@ -65,7 +65,7 @@ export function ClientCardPage() {
           onClick={() => navigate(`/trainer/clients/${id}/workouts`)}
           className="flex w-full items-center gap-3 rounded-2xl bg-[var(--color-accent)] p-4 text-left text-[var(--color-accent-on)]"
         >
-          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/10">
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-black/10">
             <Dumbbell size={20} />
           </span>
           <span className="min-w-0 flex-1">

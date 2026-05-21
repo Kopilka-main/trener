@@ -73,16 +73,16 @@ export function ActiveWorkoutPage() {
         <div className="rounded-2xl bg-[var(--color-accent)] p-4 text-[var(--color-accent-on)]">
           <div className="flex items-baseline justify-between gap-3">
             <div>
-              <div className="text-[10px] font-semibold uppercase tracking-wider text-white/60">Прошло</div>
+              <div className="text-[10px] font-semibold uppercase tracking-wider opacity-70">Прошло</div>
               <div className="text-3xl font-bold tabular-nums leading-tight">{formatDuration(elapsed)}</div>
             </div>
             <div className="text-right">
-              <div className="text-[10px] font-semibold uppercase tracking-wider text-white/60">Подходов</div>
+              <div className="text-[10px] font-semibold uppercase tracking-wider opacity-70">Подходов</div>
               <div className="text-2xl font-bold tabular-nums leading-tight">{setsCounters.done} / {setsCounters.total}</div>
             </div>
           </div>
-          <div className="mt-2 h-1 w-full overflow-hidden rounded-full bg-white/15">
-            <div className="h-full bg-white" style={{ width: setsCounters.total === 0 ? '0%' : `${(setsCounters.done / setsCounters.total) * 100}%` }} />
+          <div className="mt-2 h-1 w-full overflow-hidden rounded-full bg-black/15">
+            <div className="h-full bg-[var(--color-accent-on)]" style={{ width: setsCounters.total === 0 ? '0%' : `${(setsCounters.done / setsCounters.total) * 100}%` }} />
           </div>
         </div>
 
