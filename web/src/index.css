@@ -1,17 +1,42 @@
 @import 'tailwindcss';
 
 @theme {
-  --color-ink: #1a1a1a;
-  --color-ink-muted: #8a857a;
-  --color-line: #e6dfd3;
-  --color-bg: #f4ecdf;
-  --color-card: #ffffff;
-  --color-chip: #ebe4d6;
-  --color-accent: #1a1a1a;
-  --color-success: #2e7d4f;
-  --color-success-soft: #e3efe7;
-  --color-danger: #c8392c;
+  /* layout */
+  --color-canvas: #d8d6ce;      /* «обои» вокруг моб-каркаса */
+  --color-bg: #eeeee8;          /* фон приложения */
+  --color-card: #ffffff;        /* приподнятые карточки */
+  --color-chip: #e8e6de;        /* мелкие плашки/чипы */
+  --color-line: #dcdad2;        /* разделители, бордеры */
+
+  /* текст */
+  --color-ink: #0b0c10;         /* основной */
+  --color-ink-muted: #5e626b;   /* вторичный (подписи) */
+
+  /* акценты */
+  --color-accent: #d4ff3d;      /* primary CTA — лайм */
+  --color-accent-on: #0b0c10;   /* текст на лайме (всегда чёрный) */
+  --color-accent-2: #5c7a0e;    /* secondary — олива */
+
+  /* семантика */
+  --color-success: #5c7a0e;
+  --color-success-soft: #e8efd4;
+  --color-danger: #e04a2e;
+  --color-danger-soft: #fbe3dc;
+
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, system-ui, sans-serif;
+}
+
+[data-theme='dark'] {
+  --color-canvas: #000000;
+  --color-bg: #0b0c10;
+  --color-card: #15171d;
+  --color-chip: #1f2128;
+  --color-line: #2a2d36;
+  --color-ink: #ffffff;
+  --color-ink-muted: #9a9da6;
+  --color-success-soft: #1e2818;
+  --color-danger-soft: #3a1c15;
+  /* accent, accent-on, accent-2, success, danger — не переопределяются */
 }
 
 html, body, #root {
@@ -21,7 +46,7 @@ html, body, #root {
 body {
   margin: 0;
   font-family: var(--font-sans);
-  background: #d8d2c6;
+  background: var(--color-canvas);
   color: var(--color-ink);
   -webkit-font-smoothing: antialiased;
   -webkit-tap-highlight-color: transparent;
