@@ -7,6 +7,7 @@ import { useConfirm } from '../components/ConfirmProvider';
 import { useTrainer } from '../api/trainer';
 import { appBase } from '../lib/routes';
 import { fullName } from '../lib/initials';
+import { ThemeToggle } from '../components/ThemeToggle';
 
 type LucideIcon = typeof Phone;
 
@@ -117,7 +118,11 @@ export function TrainerPage() {
           )}
           <SettingRow icon={PieChart} label="Бухгалтерия" onClick={() => navigate('/trainer/accounting')} />
           <SettingRow icon={Building2} label="Залы" onClick={() => navigate('/trainer/gyms')} />
-          <SettingRow icon={Settings} label="Настройки приложения" />
+          <div className="flex w-full items-center gap-3 border-b border-[var(--color-line)] bg-[var(--color-card)] px-4 py-3.5">
+            <Settings size={17} className="shrink-0 text-[var(--color-ink-muted)]" />
+            <span className="flex-1 text-[14px] font-medium">Тема</span>
+            <ThemeToggle />
+          </div>
           <SettingRow icon={Bell} label="Уведомления" last />
         </div>
 
