@@ -115,7 +115,7 @@ export function HomePage() {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex-1 overflow-y-auto px-5 pb-7 pt-1">
+      <div className="flex flex-1 flex-col overflow-y-auto px-5 pb-7 pt-1">
         {/* ─── Шапка-карточка тренера ─── */}
         {trainer && (
           <button
@@ -169,8 +169,8 @@ export function HomePage() {
           )}
         </div>
 
-        {/* ─── Сетка 2×2 модулей ─── */}
-        <div className="mt-5 grid grid-cols-2 gap-2.5">
+        {/* ─── Сетка 2×2 модулей — растёт на всё свободное место ─── */}
+        <div className="mt-5 grid flex-1 grid-cols-2 gap-2.5">
           {tiles.map((tile) => {
             const isPrimary = primaryKey === tile.key;
             return (
@@ -178,7 +178,7 @@ export function HomePage() {
                 key={tile.key}
                 onClick={tile.onClick}
                 className={
-                  'relative flex min-h-[168px] flex-col rounded-2xl px-3.5 pb-4 pt-3.5 text-left active:scale-[0.97] transition-transform ' +
+                  'relative flex h-full min-h-[168px] flex-col rounded-2xl px-3.5 pb-4 pt-3.5 text-left active:scale-[0.97] transition-transform ' +
                   (isPrimary
                     ? 'bg-[var(--color-accent)] text-[var(--color-accent-on)]'
                     : 'border border-[var(--color-line)] bg-[var(--color-card)]')
