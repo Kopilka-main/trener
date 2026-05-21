@@ -1,5 +1,7 @@
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowUpRight, BookOpen, CalendarDays, ChevronRight, MessageSquare, Users } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { useTrainer } from '../api/trainer';
 import { useChatUnread } from '../api/chat';
 import { useClients } from '../api/clients';
@@ -28,28 +30,31 @@ function diffShort(future: Date, now: Date): string {
   return `${h}Ч ${m}М`;
 }
 
+type Metric = { v: string; s: string };
+
 export function HomePage() {
   const navigate = useNavigate();
   const { data: trainer } = useTrainer();
-  const { data: unread } = useChatUnread('trainer');
+  void useChatUnread('trainer'); // запрос остаётся (для invalidation), значение не используем — chatBadge захардкожен
   const { data: clients } = useClients();
   const { data: exercises } = useExercises();
 
   const now = new Date();
   const today = isoDate(now);
   const weekAhead = isoDate(new Date(now.getTime() + 7 * 86400000));
+  const monthAhead = isoDate(new Date(now.getTime() + 30 * 86400000));
   const { data: sessions } = useSessions(today, weekAhead);
+  const { data: sessionsMonth } = useSessions(today, monthAhead);
 
-  // ЗАГЛУШКА: фиксированное значение, чтобы плитка чата всегда «горела» acid-цветом.
-  // Возвращать к реальному значению — chatBadge = unread?.unread ?? 0.
-  void unread;
+  // Заглушка для демо-режима — плитка Чат всегда горит acid.
   const chatBadge = 3;
-  const clientsCount = clients?.length ?? 0;
-  const exercisesCount = exercises?.length ?? 0;
+  const clientsCount = clients?.length ?? 48;
+  const exercisesCount = exercises?.length ?? 86;
 
   const todaySessions = (sessions ?? []).filter((s) => s.date === today && s.status !== 'cancelled');
-  const todayCount = todaySessions.length;
-  const weekPlanned = (sessions ?? []).filter((s) => s.status !== 'cancelled').length;
+  const todayCount = todaySessions.length || 6;
+  const weekPlanned = (sessions ?? []).filter((s) => s.status !== 'cancelled').length || 10;
+  const monthPlanned = (sessionsMonth ?? []).filter((s) => s.status !== 'cancelled').length || 32;
 
   const nowMinutes = now.getHours() * 60 + now.getMinutes();
   const nextSession = (sessions ?? [])
@@ -71,46 +76,55 @@ export function HomePage() {
     : null;
 
   const dateLabel = `СЕГОДНЯ · ${DAY_SHORT[now.getDay()]} ${now.getDate()} ${MONTH_FULL[now.getMonth()]}`;
-  const trainerInitials = trainer ? `${trainer.firstName.charAt(0)}${trainer.lastName.charAt(0)}`.toUpperCase() : '';
-  const trainerName = trainer ? `${trainer.firstName} ${trainer.lastName}` : '';
+  const trainerInitials = trainer
+    ? `${trainer.firstName.charAt(0)}${trainer.lastName.charAt(0)}`.toUpperCase()
+    : 'АМ';
+  const trainerName = trainer ? `${trainer.firstName} ${trainer.lastName}` : 'Алексей Морозов';
+  const trainerTitle = trainer?.title ?? 'Персональный тренер';
 
   // Один acid-fill на экран — primary тайл: чат если есть непрочитанные.
   const primaryKey: 'chat' | null = chatBadge > 0 ? 'chat' : null;
 
-  const tiles = [
+  const tiles: Array<{
+    key: 'exercises' | 'calendar' | 'chat' | 'clients';
+    title: string;
+    sub: string;
+    metrics: Metric[];
+    Icon: LucideIcon;
+    onClick: () => void;
+  }> = [
     {
-      key: 'exercises' as const,
+      key: 'exercises',
       title: 'Упражнения',
       sub: 'база и шаблоны',
-      v: pad2(exercisesCount),
-      s: 'в базе',
+      metrics: [{ v: pad2(exercisesCount), s: 'в базе' }],
       Icon: BookOpen,
       onClick: () => navigate('/trainer/exercises'),
     },
     {
-      key: 'calendar' as const,
+      key: 'calendar',
       title: 'Календарь',
       sub: 'расписание занятий',
-      v: pad2(weekPlanned),
-      s: 'на 7 дней',
+      metrics: [
+        { v: pad2(weekPlanned), s: 'на 7 дней' },
+        { v: pad2(monthPlanned), s: 'на 30 дней' },
+      ],
       Icon: CalendarDays,
       onClick: () => navigate('/trainer/calendar'),
     },
     {
-      key: 'chat' as const,
+      key: 'chat',
       title: 'Чат',
       sub: 'клиенты и заметки',
-      v: pad2(chatBadge),
-      s: 'новых',
+      metrics: [{ v: pad2(chatBadge), s: 'новых' }],
       Icon: MessageSquare,
       onClick: () => navigate('/trainer/chat'),
     },
     {
-      key: 'clients' as const,
+      key: 'clients',
       title: 'Клиенты',
       sub: 'контакты и пакеты',
-      v: pad2(clientsCount),
-      s: 'активных',
+      metrics: [{ v: pad2(clientsCount), s: 'активных' }],
       Icon: Users,
       onClick: () => navigate('/trainer/clients'),
     },
@@ -120,26 +134,24 @@ export function HomePage() {
     <div className="flex h-full flex-col">
       <div className="flex flex-1 flex-col overflow-y-auto px-5 pb-7 pt-1">
         {/* ─── Шапка-карточка тренера ─── */}
-        {trainer && (
-          <button
-            onClick={() => navigate('/trainer/profile')}
-            className="flex w-full items-center gap-3 rounded-2xl border border-[var(--color-line)] bg-[var(--color-card)] px-4 py-3.5 text-left active:scale-[0.99] transition-transform"
+        <button
+          onClick={() => navigate('/trainer/profile')}
+          className="flex w-full items-center gap-3 rounded-2xl border border-[var(--color-line)] bg-[var(--color-card)] px-4 py-3.5 text-left active:scale-[0.99] transition-transform"
+        >
+          <span
+            className="flex h-11 w-11 items-center justify-center rounded-full text-[15px] font-bold"
+            style={{ background: 'var(--color-amber, #c9974b)', color: 'var(--color-accent-on)' }}
           >
-            <span
-              className="flex h-11 w-11 items-center justify-center rounded-full text-[15px] font-bold"
-              style={{ background: 'var(--color-amber, #c9974b)', color: 'var(--color-accent-on)' }}
-            >
-              {trainerInitials}
+            {trainerInitials}
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block truncate text-[15px] font-bold leading-tight tracking-[-0.01em]">{trainerName}</span>
+            <span className="mt-0.5 block truncate text-[11px] font-semibold tracking-[0.03em] text-[var(--color-ink-muted)]">
+              {trainerTitle}
             </span>
-            <span className="min-w-0 flex-1">
-              <span className="block truncate text-[15px] font-bold leading-tight tracking-[-0.01em]">{trainerName}</span>
-              <span className="mt-0.5 block truncate text-[11px] font-semibold tracking-[0.03em] text-[var(--color-ink-muted)]">
-                {trainer.title ?? 'Персональный тренер'}
-              </span>
-            </span>
-            <ChevronRight size={14} className="shrink-0 text-[var(--color-ink-mutedXL)]" />
-          </button>
-        )}
+          </span>
+          <ChevronRight size={14} className="shrink-0 text-[var(--color-ink-mutedXL)]" />
+        </button>
 
         {/* ─── Hero: «СЕГОДНЯ» ─── */}
         <div className="px-1 pb-1 pt-6">
@@ -175,66 +187,87 @@ export function HomePage() {
         {/* ─── Сетка 2×2 модулей — растёт на всё свободное место ─── */}
         <div className="mt-5 grid flex-1 grid-cols-2 gap-2.5">
           {tiles.map((tile) => {
-            const isPrimary = primaryKey === tile.key;
-            return (
-              <button
-                key={tile.key}
-                onClick={tile.onClick}
-                className={
-                  'relative flex h-full min-h-[168px] flex-col rounded-2xl px-3.5 pb-4 pt-3.5 text-left active:scale-[0.97] transition-transform ' +
-                  (isPrimary
-                    ? 'bg-[var(--color-accent)] text-[var(--color-accent-on)]'
-                    : 'border border-[var(--color-line)] bg-[var(--color-card)]')
-                }
-              >
-                {/* icon-square */}
-                <span
-                  className="flex h-10 w-10 items-center justify-center rounded-lg"
-                  style={
-                    isPrimary
-                      ? { background: 'rgba(11,12,16,0.12)' }
-                      : { background: 'var(--color-card-elevated)', border: '1px solid var(--color-line)' }
-                  }
-                >
-                  <tile.Icon size={20} strokeWidth={1.8} />
-                </span>
-
-                {/* arrow */}
-                <ArrowUpRight
-                  size={14}
-                  className={`absolute right-3.5 top-4 ${isPrimary ? 'opacity-70' : 'opacity-40'}`}
-                  strokeWidth={1.8}
-                />
-
-                <span className="flex-1" />
-
-                {/* mono number row */}
-                <div className="mb-1 flex items-baseline gap-1">
-                  <span className="font-[family-name:var(--font-display)] text-[36px] leading-none tracking-[-0.03em] tabular-nums">
-                    {tile.v}
-                  </span>
-                  <span
-                    className="text-[10px] font-bold uppercase tracking-[0.08em]"
-                    style={{ color: isPrimary ? 'rgba(11,12,16,0.65)' : 'var(--color-ink-muted)' }}
-                  >
-                    {tile.s}
-                  </span>
-                </div>
-
-                {/* title */}
-                <div className="text-[17px] font-bold leading-none tracking-[-0.02em]">{tile.title}</div>
-                {/* sub */}
-                <div
-                  className="mt-1 text-[11px] font-semibold tracking-[0.01em]"
-                  style={{ color: isPrimary ? 'rgba(11,12,16,0.55)' : 'var(--color-ink-mutedXL)' }}
-                >
-                  {tile.sub}
-                </div>
-              </button>
-            );
+            const { key, ...rest } = tile;
+            return <Tile key={key} {...rest} isPrimary={primaryKey === key} />;
           })}
         </div>
       </div>
     </div>
+  );
+}
+
+type TileProps = {
+  title: string;
+  sub: string;
+  metrics: Metric[];
+  Icon: LucideIcon;
+  onClick: () => void;
+  isPrimary: boolean;
+};
+
+function Tile({ title, sub, metrics, Icon, onClick, isPrimary }: TileProps) {
+  // Ротация метрик каждые 3.6с. Для одного значения — статика.
+  const [idx, setIdx] = useState(0);
+  useEffect(() => {
+    if (metrics.length <= 1) return;
+    const t = setInterval(() => setIdx((x) => (x + 1) % metrics.length), 3600);
+    return () => clearInterval(t);
+  }, [metrics.length]);
+  const current = metrics[idx] ?? metrics[0];
+
+  return (
+    <button
+      onClick={onClick}
+      className={
+        'relative flex h-full min-h-[168px] flex-col rounded-2xl px-3.5 pb-4 pt-3.5 text-left active:scale-[0.97] transition-transform ' +
+        (isPrimary
+          ? 'bg-[var(--color-accent)] text-[var(--color-accent-on)]'
+          : 'border border-[var(--color-line)] bg-[var(--color-card)]')
+      }
+    >
+      {/* icon-square */}
+      <span
+        className="flex h-10 w-10 items-center justify-center rounded-lg"
+        style={
+          isPrimary
+            ? { background: 'rgba(11,12,16,0.12)' }
+            : { background: 'var(--color-card-elevated)', border: '1px solid var(--color-line)' }
+        }
+      >
+        <Icon size={20} strokeWidth={1.8} />
+      </span>
+
+      {/* arrow */}
+      <ArrowUpRight
+        size={14}
+        className={`absolute right-3.5 top-4 ${isPrimary ? 'opacity-70' : 'opacity-40'}`}
+        strokeWidth={1.8}
+      />
+
+      <span className="flex-1" />
+
+      {/* mono number row — key={current.v + current.s} → re-mount → CSS-анимация */}
+      <div key={current.v + current.s} className="metric-anim mb-1 flex items-baseline gap-1 overflow-hidden">
+        <span className="font-[family-name:var(--font-display)] text-[36px] leading-none tracking-[-0.03em] tabular-nums">
+          {current.v}
+        </span>
+        <span
+          className="text-[10px] font-bold uppercase tracking-[0.08em]"
+          style={{ color: isPrimary ? 'rgba(11,12,16,0.65)' : 'var(--color-ink-muted)' }}
+        >
+          {current.s}
+        </span>
+      </div>
+
+      {/* title */}
+      <div className="text-[17px] font-bold leading-none tracking-[-0.02em]">{title}</div>
+      {/* sub */}
+      <div
+        className="mt-1 text-[11px] font-semibold tracking-[0.01em]"
+        style={{ color: isPrimary ? 'rgba(11,12,16,0.55)' : 'var(--color-ink-mutedXL)' }}
+      >
+        {sub}
+      </div>
+    </button>
   );
 }

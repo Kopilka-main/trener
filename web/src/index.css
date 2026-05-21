@@ -91,6 +91,15 @@ button {
   overflow: hidden;
 }
 
+/* Анимация смены метрик на плитках главного экрана */
+@keyframes metric-fade-up {
+  0%   { opacity: 0; transform: translateY(10px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+.metric-anim {
+  animation: metric-fade-up 0.45s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
 /* Hide native number input arrows */
 input[type='number']::-webkit-outer-spin-button,
 input[type='number']::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
