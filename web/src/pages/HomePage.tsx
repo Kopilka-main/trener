@@ -102,7 +102,7 @@ function Tile({
       {badge !== undefined && badge > 0 && (
         <span
           className="absolute right-3 top-3 flex h-6 min-w-[24px] items-center justify-center rounded-full px-1.5 text-[11px] font-bold"
-          style={{ background: badgeColor, color: badgeTone === 'ink' ? 'var(--color-accent-on)' : '#ffffff' }}
+          style={{ background: badgeColor, color: badgeTone === 'danger' || badgeTone === 'warn' ? '#ffffff' : 'var(--color-accent-on)' }}
         >
           {badge}
         </span>
