@@ -40,7 +40,10 @@ export function HomePage() {
   const weekAhead = isoDate(new Date(now.getTime() + 7 * 86400000));
   const { data: sessions } = useSessions(today, weekAhead);
 
-  const chatBadge = unread?.unread ?? 0;
+  // ЗАГЛУШКА: фиксированное значение, чтобы плитка чата всегда «горела» acid-цветом.
+  // Возвращать к реальному значению — chatBadge = unread?.unread ?? 0.
+  void unread;
+  const chatBadge = 3;
   const clientsCount = clients?.length ?? 0;
   const exercisesCount = exercises?.length ?? 0;
 
