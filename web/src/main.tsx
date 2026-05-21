@@ -5,6 +5,9 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { App } from './App';
 import { ConfirmProvider } from './components/ConfirmProvider';
 import './index.css';
+import { applyStoredTheme } from './lib/theme';
+
+applyStoredTheme();
 
 const queryClient = new QueryClient({
   defaultOptions: {
