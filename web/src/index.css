@@ -1,44 +1,56 @@
 @import 'tailwindcss';
 
 @theme {
-  /* layout */
+  /* layout (light = вторичная по спеке Acid Flow) */
   --color-canvas: #d8d6ce;      /* «обои» вокруг моб-каркаса */
-  --color-bg: #eeeee8;          /* фон приложения */
-  --color-card: #ffffff;        /* приподнятые карточки */
+  --color-bg: #f4f4ee;          /* фон приложения (panel.bg в light) */
+  --color-card: #ffffff;        /* основные карточки */
+  --color-card-elevated: #ebebe3; /* приподнятые (panel2) */
   --color-chip: #e8e6de;        /* мелкие плашки/чипы */
-  --color-line: #dcdad2;        /* разделители, бордеры */
+  --color-line: rgba(11, 12, 16, 0.10);
+  --color-line-strong: rgba(11, 12, 16, 0.20);
 
-  /* текст */
+  /* текст: ink → text2 → text3 */
   --color-ink: #0b0c10;         /* основной */
-  --color-ink-muted: #5e626b;   /* вторичный (подписи) */
+  --color-ink-muted: #5e626b;   /* вторичный */
+  --color-ink-mutedXL: #9a9da6; /* третичный (мелкие sub, captions) */
 
   /* акценты */
-  --color-accent: #d4ff3d;      /* primary CTA — лайм */
-  --color-accent-on: #0b0c10;   /* текст на лайме (всегда чёрный) */
-  --color-accent-2: #5c7a0e;    /* secondary — олива */
+  --color-accent: #d4ff3d;            /* лайм */
+  --color-accent-on: #0b0c10;         /* текст на лайме */
+  --color-accent-text: #5c7a0e;       /* «как акцент в тексте на светлом фоне» (олива) */
+  --color-accent-2: #5c7a0e;
 
   /* семантика */
   --color-success: #5c7a0e;
   --color-success-soft: #e8efd4;
   --color-danger: #e04a2e;
   --color-danger-soft: #fbe3dc;
+  --color-coral: #e04a2e;
+  --color-amber: #c9974b;
 
   --font-sans: 'Space Grotesk', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, system-ui, sans-serif;
   --font-display: 'Bowlby One', 'Space Grotesk', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', 'Cascadia Mono', Consolas, monospace;
 }
 
 [data-theme='dark'] {
   --color-canvas: #000000;
-  --color-bg: #0b0c10;
-  --color-card: #15171d;
+  --color-bg: #0b0c10;          /* основной фон страницы */
+  --color-card: #15171d;        /* panel */
+  --color-card-elevated: #1d2029; /* panel2 — приподнятые блоки/иконки */
   --color-chip: #1f2128;
-  --color-line: #2a2d36;
-  --color-ink: #ffffff;
-  --color-ink-muted: #9a9da6;
+  --color-line: rgba(255, 255, 255, 0.10);
+  --color-line-strong: rgba(255, 255, 255, 0.20);
+  --color-ink: #eeeee8;         /* text (НЕ чисто белый — кремовый по спеке) */
+  --color-ink-muted: #9a9da6;   /* text2 */
+  --color-ink-mutedXL: #5e626b; /* text3 */
+  --color-accent-text: #d4ff3d; /* в тёмной — лайм светится прямо */
+  --color-coral: #ff6e4e;
+  --color-amber: #e8b255;
   --color-success-soft: #1e2818;
   --color-danger-soft: #3a1c15;
-  color: var(--color-ink);  /* применяется и к вложенным data-theme=dark — для тёмных карточек на светлом фоне */
-  /* accent, accent-on, accent-2, success, danger — не переопределяются */
+  color: var(--color-ink);  /* срабатывает и на вложенных data-theme=dark — нужно для локальной инверсии */
 }
 
 html, body, #root {
