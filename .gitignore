@@ -34,6 +34,7 @@ _design_inbox/
 
 # временная папка для деплоя на gh-pages
 .deploy-tmp/
+.deploy-tmp2/
 
 # Figma-экспорты в корне (большие HTML-макеты, не код проекта)
 /_*.html
