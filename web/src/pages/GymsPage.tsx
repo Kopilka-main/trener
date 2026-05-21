@@ -105,8 +105,7 @@ function GymForm({ onClose }: { onClose: () => void }) {
       <button
         onClick={submit}
         disabled={createMut.isPending}
-        className="w-full rounded-2xl bg-ink py-3 text-[14px] font-semibold disabled:opacity-50"
-        style={{ color: '#ffffff' }}
+        className="w-full rounded-2xl bg-[var(--color-accent)] py-3 text-[14px] font-semibold text-[var(--color-accent-on)] disabled:opacity-50"
       >
         {createMut.isPending ? 'Сохранение…' : 'Сохранить'}
       </button>

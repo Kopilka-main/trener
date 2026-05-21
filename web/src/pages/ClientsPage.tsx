@@ -42,7 +42,7 @@ export function ClientsPage() {
           <button
             onClick={() => navigate(`${appBase()}/clients/new`)}
             className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
-            style={{ background: '#1a1a1a', color: '#ffffff' }}
+            style={{ background: 'var(--color-accent)', color: 'var(--color-accent-on)' }}
             aria-label="Добавить клиента"
           >
             <Plus size={18} />

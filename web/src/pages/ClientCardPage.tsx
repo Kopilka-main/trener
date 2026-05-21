@@ -63,15 +63,14 @@ export function ClientCardPage() {
         {/* CTA: переход к тренировкам */}
         <button
           onClick={() => navigate(`/trainer/clients/${id}/workouts`)}
-          className="flex w-full items-center gap-3 rounded-2xl bg-ink p-4 text-left"
-          style={{ color: '#ffffff' }}
+          className="flex w-full items-center gap-3 rounded-2xl bg-[var(--color-accent)] p-4 text-left text-[var(--color-accent-on)]"
         >
           <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/10">
             <Dumbbell size={20} />
           </span>
           <span className="min-w-0 flex-1">
             <span className="block text-[15px] font-bold">Перейти к тренировкам</span>
-            <span className="block text-[12px]" style={{ color: 'rgba(255,255,255,0.7)' }}>
+            <span className="block text-[12px] opacity-70">
               текущая + история
             </span>
           </span>
@@ -382,8 +381,7 @@ function PackageForm({ clientId, onClose }: { clientId: string; onClose: () => v
       <button
         onClick={submit}
         disabled={createMut.isPending}
-        className="w-full rounded-2xl bg-ink py-3 text-[14px] font-semibold disabled:opacity-50"
-        style={{ color: '#ffffff' }}
+        className="w-full rounded-2xl bg-[var(--color-accent)] py-3 text-[14px] font-semibold text-[var(--color-accent-on)] disabled:opacity-50"
       >
         {createMut.isPending ? 'Сохранение…' : 'Сохранить пакет'}
       </button>
@@ -487,7 +485,7 @@ function StatsBody({ clientId }: { clientId: string }) {
                 </div>
                 <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-[var(--color-chip)]">
                   <div
-                    className="h-full bg-ink"
+                    className="h-full bg-[var(--color-accent-2)]"
                     style={{ width: `${(t.tonnage / maxTonnage) * 100}%` }}
                   />
                 </div>

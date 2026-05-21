@@ -68,17 +68,17 @@ export function WorkoutSummaryPage() {
                 <button
                   key={opt.value}
                   onClick={() => setRpe(opt.value)}
-                  className={`rounded-2xl py-4 text-center ${active ? 'bg-ink text-white' : 'bg-[var(--color-card)]'}`}
+                  className={`rounded-2xl py-4 text-center ${active ? 'bg-[var(--color-accent)] text-[var(--color-accent-on)]' : 'bg-[var(--color-card)]'}`}
                 >
                   <div className="text-[14px] font-semibold">{opt.label}</div>
-                  <div className={`mt-0.5 text-[11px] ${active ? 'text-white/70' : 'text-[var(--color-ink-muted)]'}`}>{opt.sub}</div>
+                  <div className={`mt-0.5 text-[11px] ${active ? 'opacity-60' : 'text-[var(--color-ink-muted)]'}`}>{opt.sub}</div>
                 </button>
               );
             })}
           </div>
         </div>
 
-        <button onClick={save} className="mt-2 w-full rounded-2xl bg-ink py-4 text-[15px] font-semibold" style={{ color: '#ffffff' }}>
+        <button onClick={save} className="mt-2 w-full rounded-2xl bg-[var(--color-accent)] py-4 text-[15px] font-semibold text-[var(--color-accent-on)]">
           Сохранить в историю
         </button>
       </div>

@@ -70,7 +70,7 @@ export function ActiveWorkoutPage() {
       </header>
 
       <div className="flex-1 overflow-y-auto px-4 pb-4 space-y-3">
-        <div className="rounded-2xl bg-ink p-4 text-white">
+        <div className="rounded-2xl bg-[var(--color-accent)] p-4 text-[var(--color-accent-on)]">
           <div className="flex items-baseline justify-between gap-3">
             <div>
               <div className="text-[10px] font-semibold uppercase tracking-wider text-white/60">Прошло</div>

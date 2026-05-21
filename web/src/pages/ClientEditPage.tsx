@@ -109,8 +109,7 @@ export function ClientEditPage({ mode }: Props) {
               <button
                 onClick={loadById}
                 disabled={!loadId.trim() || loadMut.isPending}
-                className="shrink-0 rounded-2xl bg-ink px-5 text-[13px] font-semibold disabled:opacity-40"
-                style={{ color: '#ffffff' }}
+                className="shrink-0 rounded-2xl bg-[var(--color-accent)] px-5 text-[13px] font-semibold text-[var(--color-accent-on)] disabled:opacity-40"
               >
                 {loadMut.isPending ? '…' : 'Загрузить'}
               </button>

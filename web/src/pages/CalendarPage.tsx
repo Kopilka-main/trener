@@ -120,8 +120,7 @@ export function CalendarPage() {
         right={
           <button
             onClick={() => { setCreating(true); setEditing(null); }}
-            className="flex items-center gap-1 rounded-full bg-ink px-3 py-1.5 text-[13px] font-semibold"
-            style={{ color: '#ffffff' }}
+            className="flex items-center gap-1 rounded-full bg-[var(--color-accent)] px-3 py-1.5 text-[13px] font-semibold text-[var(--color-accent-on)]"
           >
             <Plus size={14} /> Запись
           </button>
@@ -227,8 +226,7 @@ function Segmented<T extends string>({
           <button
             key={o.value}
             onClick={() => onChange(o.value)}
-            className={`shrink-0 rounded-full px-2.5 py-1 text-[12px] font-medium ${active ? 'bg-ink' : 'text-[var(--color-ink-muted)]'}`}
-            style={active ? { color: '#ffffff' } : undefined}
+            className={`shrink-0 rounded-full px-2.5 py-1 text-[12px] font-medium ${active ? 'bg-[var(--color-accent)] text-[var(--color-accent-on)]' : 'text-[var(--color-ink-muted)]'}`}
           >
             {o.label}
           </button>
@@ -484,8 +482,7 @@ function WeekView({
             <button key={toISODate(d)} onClick={() => onPickDay(d)} className="flex-1 pb-1.5 text-center">
               <div className="text-[10px] text-[var(--color-ink-muted)]">{DAY_SHORT[weekdayMon(d)]}</div>
               <div
-                className={`mx-auto mt-0.5 flex h-6 w-6 items-center justify-center rounded-full text-[12px] font-bold tabular-nums ${today ? 'bg-ink' : ''}`}
-                style={today ? { color: '#ffffff' } : undefined}
+                className={`mx-auto mt-0.5 flex h-6 w-6 items-center justify-center rounded-full text-[12px] font-bold tabular-nums ${today ? 'bg-[var(--color-accent)] text-[var(--color-accent-on)]' : ''}`}
               >
                 {d.getDate()}
               </div>
@@ -776,8 +773,7 @@ function SessionForm({
             <button
               key={d}
               onClick={() => setDuration(d)}
-              className={`flex-1 rounded-2xl py-2.5 text-[13px] font-medium ${duration === d ? 'bg-ink' : 'bg-[var(--color-chip)]'}`}
-              style={duration === d ? { color: '#ffffff' } : undefined}
+              className={`flex-1 rounded-2xl py-2.5 text-[13px] font-medium ${duration === d ? 'bg-[var(--color-accent)] text-[var(--color-accent-on)]' : 'bg-[var(--color-chip)]'}`}
             >
               {d} мин
             </button>
@@ -791,8 +787,7 @@ function SessionForm({
             <button
               key={loc}
               onClick={() => setLocation(loc)}
-              className={`rounded-full px-4 py-2 text-[13px] font-medium ${location === loc ? 'bg-ink' : 'bg-[var(--color-chip)]'}`}
-              style={location === loc ? { color: '#ffffff' } : undefined}
+              className={`rounded-full px-4 py-2 text-[13px] font-medium ${location === loc ? 'bg-[var(--color-accent)] text-[var(--color-accent-on)]' : 'bg-[var(--color-chip)]'}`}
             >
               {loc}
             </button>
@@ -820,8 +815,7 @@ function SessionForm({
 
       <button
         onClick={save}
-        className="w-full rounded-2xl bg-ink py-3.5 text-[15px] font-semibold"
-        style={{ color: '#ffffff' }}
+        className="w-full rounded-2xl bg-[var(--color-accent)] py-3.5 text-[15px] font-semibold text-[var(--color-accent-on)]"
       >
         {session ? 'Сохранить' : 'Создать занятие'}
       </button>

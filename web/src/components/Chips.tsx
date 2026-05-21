@@ -19,9 +19,9 @@ export function Chips<T extends string>({ options, selected, onToggle, multi = t
               onToggle(opt);
             }}
             className={`rounded-full px-3.5 py-2 text-[13px] transition-colors ${
-              active ? 'bg-ink' : 'bg-[var(--color-chip)]'
+              active ? 'bg-[var(--color-accent)]' : 'bg-[var(--color-chip)]'
             }`}
-            style={{ color: active ? '#ffffff' : '#1a1a1a' }}
+            style={{ color: active ? 'var(--color-accent-on)' : 'var(--color-ink)' }}
           >
             {opt}
           </button>

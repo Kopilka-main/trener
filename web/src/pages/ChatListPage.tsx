@@ -92,7 +92,7 @@ export function ChatListPage() {
                       )}
                     </span>
                     {c.unread > 0 && (
-                      <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-ink px-1.5 text-[11px] font-bold" style={{ color: '#ffffff' }}>
+                      <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[var(--color-accent)] px-1.5 text-[11px] font-bold text-[var(--color-accent-on)]">
                         {c.unread}
                       </span>
                     )}

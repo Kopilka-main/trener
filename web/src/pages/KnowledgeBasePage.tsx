@@ -108,14 +108,14 @@ function CreateTile({ title, sub, dark, onClick }: { title: string; sub: string;
   return (
     <button
       onClick={onClick}
-      className={`relative flex h-[112px] flex-col items-start justify-end rounded-2xl p-3 text-left ${dark ? 'bg-ink' : 'bg-[var(--color-card)]'}`}
-      style={{ color: dark ? '#ffffff' : '#1a1a1a' }}
+      className={`relative flex h-[112px] flex-col items-start justify-end rounded-2xl p-3 text-left ${dark ? 'bg-[var(--color-accent)]' : 'bg-[var(--color-card)]'}`}
+      style={{ color: dark ? 'var(--color-accent-on)' : 'var(--color-ink)' }}
     >
-      <span className={`absolute left-3 top-3 flex h-8 w-8 items-center justify-center rounded-full ${dark ? 'bg-white/10' : 'bg-[var(--color-chip)]'}`}>
+      <span className={`absolute left-3 top-3 flex h-8 w-8 items-center justify-center rounded-full ${dark ? 'bg-black/10' : 'bg-[var(--color-chip)]'}`}>
         <Plus size={16} />
       </span>
-      <span className="text-[14px] font-semibold leading-tight" style={{ color: dark ? '#ffffff' : '#1a1a1a' }}>{title}</span>
-      <span className="mt-0.5 text-[11px]" style={{ color: dark ? 'rgba(255,255,255,0.6)' : 'var(--color-ink-muted)' }}>{sub}</span>
+      <span className="text-[14px] font-semibold leading-tight" style={{ color: dark ? 'var(--color-accent-on)' : 'var(--color-ink)' }}>{title}</span>
+      <span className="mt-0.5 text-[11px]" style={{ color: dark ? 'var(--color-accent-on)' : 'var(--color-ink-muted)' }}>{sub}</span>
     </button>
   );
 }
@@ -136,8 +136,8 @@ function FilterChip({ active, onClick, children }: { active: boolean; onClick: (
   return (
     <button
       onClick={onClick}
-      className={`shrink-0 rounded-full px-3 py-1.5 text-[13px] transition-colors ${active ? 'bg-ink' : 'bg-[var(--color-chip)]'}`}
-      style={{ color: active ? '#ffffff' : '#1a1a1a' }}
+      className={`shrink-0 rounded-full px-3 py-1.5 text-[13px] transition-colors ${active ? 'bg-[var(--color-accent)]' : 'bg-[var(--color-chip)]'}`}
+      style={{ color: active ? 'var(--color-accent-on)' : 'var(--color-ink)' }}
     >
       {children}
     </button>

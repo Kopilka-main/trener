@@ -53,8 +53,7 @@ export function LoginPage() {
 
       <button
         onClick={submit}
-        className="mt-6 w-full rounded-2xl bg-ink py-3.5 text-[15px] font-semibold"
-        style={{ color: '#ffffff' }}
+        className="mt-6 w-full rounded-2xl bg-[var(--color-accent)] py-3.5 text-[15px] font-semibold text-[var(--color-accent-on)]"
       >
         Войти
       </button>

@@ -332,7 +332,7 @@ function Step1({
                         onClick={() => toggle(ex.id)}
                         className="flex min-w-0 flex-1 items-center gap-3 text-left"
                       >
-                        <div className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md ${picked ? 'bg-ink text-white' : 'bg-[var(--color-chip)]'}`}>
+                        <div className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md ${picked ? 'bg-[var(--color-accent)] text-[var(--color-accent-on)]' : 'bg-[var(--color-chip)]'}`}>
                           {picked ? '✓' : ''}
                         </div>
                         <div className="min-w-0 flex-1">
@@ -416,7 +416,7 @@ function ExercisePicker({ open, onClose, onPick }: { open: boolean; onClose: () 
                   onClick={() => setPicked((arr) => (isPicked ? arr.filter((i) => i !== ex.id) : [...arr, ex.id]))}
                   className="flex w-full items-center gap-3 rounded-2xl bg-[var(--color-card)] px-3 py-2.5 text-left"
                 >
-                  <div className={`flex h-5 w-5 items-center justify-center rounded ${isPicked ? 'bg-ink text-white' : 'bg-[var(--color-chip)]'}`}>
+                  <div className={`flex h-5 w-5 items-center justify-center rounded ${isPicked ? 'bg-[var(--color-accent)] text-[var(--color-accent-on)]' : 'bg-[var(--color-chip)]'}`}>
                     {isPicked ? '✓' : ''}
                   </div>
                   <div className="min-w-0 flex-1">

@@ -46,7 +46,10 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
               <button
                 onClick={() => close(true)}
                 className="flex-1 rounded-xl py-2.5 text-[14px] font-semibold"
-                style={{ background: pending.danger ? 'var(--color-danger)' : '#1a1a1a', color: '#ffffff' }}
+                style={{
+                  background: pending.danger ? 'var(--color-danger)' : 'var(--color-accent)',
+                  color: pending.danger ? '#ffffff' : 'var(--color-accent-on)',
+                }}
               >
                 {pending.confirmLabel}
               </button>

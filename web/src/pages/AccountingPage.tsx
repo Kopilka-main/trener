@@ -267,8 +267,8 @@ function ExpenseForm({ onClose }: { onClose: () => void }) {
             <button
               key={c}
               onClick={() => setCategory(c)}
-              className={`rounded-full px-3 py-1.5 text-[12px] ${category === c ? 'bg-ink' : 'bg-[var(--color-chip)]'}`}
-              style={category === c ? { color: '#ffffff' } : undefined}
+              className={`rounded-full px-3 py-1.5 text-[12px] ${category === c ? 'bg-[var(--color-accent)]' : 'bg-[var(--color-chip)]'}`}
+              style={category === c ? { color: 'var(--color-accent-on)' } : undefined}
             >
               {c}
             </button>
@@ -308,8 +308,7 @@ function ExpenseForm({ onClose }: { onClose: () => void }) {
       <button
         onClick={submit}
         disabled={createMut.isPending}
-        className="w-full rounded-2xl bg-ink py-3 text-[14px] font-semibold disabled:opacity-50"
-        style={{ color: '#ffffff' }}
+        className="w-full rounded-2xl bg-[var(--color-accent)] py-3 text-[14px] font-semibold text-[var(--color-accent-on)] disabled:opacity-50"
       >
         {createMut.isPending ? 'Сохранение…' : 'Сохранить'}
       </button>

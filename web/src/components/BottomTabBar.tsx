@@ -34,8 +34,7 @@ export function BottomTabBar({ role }: { role: 'trainer' | 'client' }) {
               {label}
               {key === 'chat' && unread && unread.unread > 0 && (
                 <span
-                  className="ml-1.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-ink px-1 text-[10px] font-bold"
-                  style={{ color: '#ffffff' }}
+                  className="ml-1.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-[var(--color-accent)] px-1 text-[10px] font-bold text-[var(--color-accent-on)]"
                 >
                   {unread.unread}
                 </span>

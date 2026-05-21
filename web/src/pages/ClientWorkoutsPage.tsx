@@ -123,8 +123,7 @@ export function ClientWorkoutsPage() {
                 </div>
                 <button
                   onClick={() => setPicker('template')}
-                  className="mt-3 w-full rounded-2xl bg-ink py-2.5 text-[13px] font-semibold"
-                  style={{ color: '#ffffff' }}
+                  className="mt-3 w-full rounded-2xl bg-[var(--color-accent)] py-2.5 text-[13px] font-semibold text-[var(--color-accent-on)]"
                 >
                   Выбрать из базы
                 </button>
@@ -265,8 +264,7 @@ function CurrentCard({ workout, onStart }: { workout: ClientWorkout; onStart: ()
 
       <button
         onClick={onStart}
-        className="flex w-full items-center justify-center gap-2 rounded-2xl bg-ink py-3.5 text-[15px] font-semibold"
-        style={{ color: '#ffffff' }}
+        className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[var(--color-accent)] py-3.5 text-[15px] font-semibold text-[var(--color-accent-on)]"
       >
         <Play size={16} fill="currentColor" /> {workout.status === 'active' ? 'Продолжить' : 'Начать тренировку'}
       </button>
@@ -329,7 +327,7 @@ function EmptyCurrent({
         <div className="mx-auto mt-1 max-w-[280px] text-[12px] text-[var(--color-ink-muted)]">
           Выберите готовую из базы знаний или повторите одну из прошлых тренировок.
         </div>
-        <button onClick={onPickTemplate} className="mt-4 w-full rounded-2xl bg-ink py-3 text-[14px] font-semibold" style={{ color: '#ffffff' }}>
+        <button onClick={onPickTemplate} className="mt-4 w-full rounded-2xl bg-[var(--color-accent)] py-3 text-[14px] font-semibold text-[var(--color-accent-on)]">
           Выбрать из базы
         </button>
         <button onClick={onPickHistory} disabled={!hasHistory} className="mt-2 inline-flex items-center gap-1.5 text-[13px] text-[var(--color-ink-muted)] disabled:opacity-40">
@@ -403,8 +401,7 @@ function FilterChip({ active, onClick, children }: { active: boolean; onClick: (
   return (
     <button
       onClick={onClick}
-      className={`shrink-0 rounded-full px-3 py-1.5 text-[13px] ${active ? 'bg-ink' : 'bg-[var(--color-chip)]'}`}
-      style={{ color: active ? '#ffffff' : '#1a1a1a' }}
+      className={`shrink-0 rounded-full px-3 py-1.5 text-[13px] ${active ? 'bg-[var(--color-accent)] text-[var(--color-accent-on)]' : 'bg-[var(--color-chip)]'}`}
     >
       {children}
     </button>

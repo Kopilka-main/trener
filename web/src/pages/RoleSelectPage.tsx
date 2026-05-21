@@ -25,15 +25,14 @@ export function RoleSelectPage() {
       <div className="mt-7 space-y-3">
         <button
           onClick={() => pick('trainer')}
-          className="flex w-full items-center gap-4 rounded-2xl bg-ink p-4 text-left"
-          style={{ color: '#ffffff' }}
+          className="flex w-full items-center gap-4 rounded-2xl bg-[var(--color-accent)] p-4 text-left text-[var(--color-accent-on)]"
         >
-          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white/10">
+          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-black/10">
             <Dumbbell size={22} />
           </span>
           <span className="min-w-0 flex-1">
             <span className="block text-[16px] font-bold">Я тренер</span>
-            <span className="block text-[12px]" style={{ color: 'rgba(255,255,255,0.6)' }}>
+            <span className="block text-[12px] opacity-60">
               Клиенты, тренировки, календарь
             </span>
           </span>

@@ -118,8 +118,7 @@ export function ChatPage() {
         <button
           type="submit"
           disabled={!draft.trim() || sendMut.isPending}
-          className="flex h-10 w-10 items-center justify-center rounded-full bg-ink disabled:opacity-30"
-          style={{ color: '#ffffff' }}
+          className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--color-accent)] text-[var(--color-accent-on)] disabled:opacity-30"
           aria-label="Отправить"
         >
           <Send size={16} />
@@ -145,14 +144,13 @@ function Bubble({
     <div className={`flex ${mine ? 'justify-end' : 'justify-start'}`}>
       <div
         className={`max-w-[80%] rounded-2xl px-3 py-2 text-[14px] ${
-          mine ? 'bg-ink' : 'bg-[var(--color-card)]'
+          mine ? 'bg-[var(--color-accent)] text-[var(--color-accent-on)]' : 'bg-[var(--color-card)]'
         }`}
-        style={mine ? { color: '#ffffff' } : undefined}
       >
         <div className="whitespace-pre-wrap break-words">{message.body}</div>
         <div
           className="mt-0.5 flex items-center justify-end gap-1 text-[10px]"
-          style={mine ? { color: 'rgba(255,255,255,0.7)' } : { color: 'var(--color-ink-muted)' }}
+          style={{ color: 'var(--color-ink-muted)' }}
         >
           <span>{formatHM(message.createdAt)}</span>
           {mine && status && <StatusTick status={status} />}

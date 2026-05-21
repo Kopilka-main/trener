@@ -21,7 +21,7 @@ export function AlphaIndex({ available, onPick }: Props) {
               fontSize: 9,
               lineHeight: '10px',
               fontWeight: 600,
-              color: enabled ? '#1a1a1a' : '#bfb8a8',
+              color: enabled ? 'var(--color-ink)' : 'var(--color-ink-muted)',
               cursor: enabled ? 'pointer' : 'default',
               fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, system-ui, sans-serif',
             }}
