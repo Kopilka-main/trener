@@ -104,18 +104,17 @@ export function KnowledgeBasePage() {
   );
 }
 
-function CreateTile({ title, sub, dark, onClick }: { title: string; sub: string; dark?: boolean; onClick: () => void }) {
+function CreateTile({ title, sub, onClick }: { title: string; sub: string; dark?: boolean; onClick: () => void }) {
   return (
     <button
       onClick={onClick}
-      className={`relative flex h-[112px] flex-col items-start justify-end rounded-2xl p-3 text-left ${dark ? 'bg-[var(--color-accent)]' : 'bg-[var(--color-card)]'}`}
-      style={{ color: dark ? 'var(--color-accent-on)' : 'var(--color-ink)' }}
+      className="relative flex h-[112px] flex-col items-start justify-end rounded-2xl border border-[var(--color-line)] bg-[var(--color-card)] p-3 text-left"
     >
-      <span className={`absolute left-3 top-3 flex h-8 w-8 items-center justify-center rounded-full ${dark ? 'bg-black/10' : 'bg-[var(--color-chip)]'}`}>
+      <span className="absolute left-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-[var(--color-chip)]">
         <Plus size={16} />
       </span>
-      <span className="text-[14px] font-semibold leading-tight" style={{ color: dark ? 'var(--color-accent-on)' : 'var(--color-ink)' }}>{title}</span>
-      <span className="mt-0.5 text-[11px]" style={{ color: dark ? 'var(--color-accent-on)' : 'var(--color-ink-muted)' }}>{sub}</span>
+      <span className="text-[14px] font-semibold leading-tight text-[var(--color-ink)]">{title}</span>
+      <span className="mt-0.5 text-[11px] text-[var(--color-ink-muted)]">{sub}</span>
     </button>
   );
 }
