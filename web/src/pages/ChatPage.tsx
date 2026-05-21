@@ -149,8 +149,7 @@ function Bubble({
       >
         <div className="whitespace-pre-wrap break-words">{message.body}</div>
         <div
-          className="mt-0.5 flex items-center justify-end gap-1 text-[10px]"
-          style={{ color: 'var(--color-ink-muted)' }}
+          className={`mt-0.5 flex items-center justify-end gap-1 text-[10px] ${mine ? 'text-[var(--color-accent-on)] opacity-60' : 'text-[var(--color-ink-muted)]'}`}
         >
           <span>{formatHM(message.createdAt)}</span>
           {mine && status && <StatusTick status={status} />}

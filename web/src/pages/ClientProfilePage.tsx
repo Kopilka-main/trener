@@ -82,7 +82,6 @@ export function ClientProfilePage() {
         )}
 
         <div className="overflow-hidden rounded-2xl">
-          <SettingRow icon={Settings} label="Настройки приложения" />
           <div className="flex w-full items-center gap-3 border-b border-[var(--color-line)] bg-[var(--color-card)] px-4 py-3.5">
             <Settings size={17} className="shrink-0 text-[var(--color-ink-muted)]" />
             <span className="flex-1 text-[14px] font-medium">Тема</span>
