@@ -1,3 +1,5 @@
+import { useSyncExternalStore } from 'react';
+
 export type Theme = 'light' | 'dark';
 
 const STORAGE_KEY = 'app_theme';
@@ -16,4 +18,26 @@ export function setTheme(theme: Theme): void {
 
 export function applyStoredTheme(): void {
   document.documentElement.setAttribute(ATTR, getStoredTheme());
+}
+
+function subscribe(callback: () => void): () => void {
+  window.addEventListener('app:theme-changed', callback);
+  window.addEventListener('storage', callback);
+  return () => {
+    window.removeEventListener('app:theme-changed', callback);
+    window.removeEventListener('storage', callback);
+  };
+}
+
+export function useTheme(): { theme: Theme; toggle: () => void; setTheme: (t: Theme) => void } {
+  const theme = useSyncExternalStore(
+    subscribe,
+    () => getStoredTheme(),
+    () => 'light' as Theme,
+  );
+  return {
+    theme,
+    setTheme,
+    toggle: () => setTheme(theme === 'dark' ? 'light' : 'dark'),
+  };
 }
