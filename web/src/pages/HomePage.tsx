@@ -86,7 +86,7 @@ function Tile({
   onClick: () => void;
 }) {
   const badgeColor =
-    badgeTone === 'danger' ? 'var(--color-danger)' : badgeTone === 'warn' ? '#d9912b' : 'var(--color-ink)';
+    badgeTone === 'danger' ? 'var(--color-danger)' : badgeTone === 'warn' ? '#d9912b' : 'var(--color-accent)';
   return (
     <button
       onClick={onClick}
@@ -102,7 +102,7 @@ function Tile({
       {badge !== undefined && badge > 0 && (
         <span
           className="absolute right-3 top-3 flex h-6 min-w-[24px] items-center justify-center rounded-full px-1.5 text-[11px] font-bold"
-          style={{ background: badgeColor, color: '#ffffff' }}
+          style={{ background: badgeColor, color: badgeTone === 'ink' ? 'var(--color-accent-on)' : '#ffffff' }}
         >
           {badge}
         </span>
