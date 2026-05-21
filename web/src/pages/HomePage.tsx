@@ -51,6 +51,7 @@ export function HomePage() {
       <div className="flex-1 overflow-y-auto px-4 pb-6 pt-4">
         {trainer && (
           <button
+            data-theme="dark"
             onClick={() => navigate('/trainer/profile')}
             className="mb-4 flex w-full items-center gap-3 rounded-2xl bg-[var(--color-card)] p-4 text-left active:scale-[0.99] transition-transform"
           >
@@ -145,6 +146,7 @@ function MetricTile({
 }) {
   return (
     <button
+      data-theme="dark"
       onClick={onClick}
       className="relative flex aspect-square flex-col items-start justify-between rounded-2xl bg-[var(--color-card)] p-4 text-left active:scale-[0.99] transition-transform"
     >

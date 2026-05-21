@@ -37,6 +37,7 @@
   --color-ink-muted: #9a9da6;
   --color-success-soft: #1e2818;
   --color-danger-soft: #3a1c15;
+  color: var(--color-ink);  /* применяется и к вложенным data-theme=dark — для тёмных карточек на светлом фоне */
   /* accent, accent-on, accent-2, success, danger — не переопределяются */
 }
 
