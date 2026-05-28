@@ -1,18 +1,21 @@
-import { Moon, Sun } from 'lucide-react';
+import { Flame, Leaf } from 'lucide-react';
 import { useTheme } from '../lib/theme';
 
+/**
+ * Переключатель темы: Acid Flow (тёмная) ↔ Relax (светлая для йоги).
+ */
 export function ThemeToggle() {
   const { theme, toggle } = useTheme();
-  const isDark = theme === 'dark';
+  const isRelax = theme === 'relax';
   return (
     <button
       type="button"
       onClick={toggle}
-      aria-label={isDark ? 'Включить светлую тему' : 'Включить тёмную тему'}
+      aria-label={isRelax ? 'Включить Acid Flow' : 'Включить Relax'}
       className="flex items-center gap-2 rounded-full bg-[var(--color-chip)] px-3 py-1.5 text-[12px] font-medium text-[var(--color-ink)]"
     >
-      {isDark ? <Moon size={14} /> : <Sun size={14} />}
-      <span>{isDark ? 'Тёмная' : 'Светлая'}</span>
+      {isRelax ? <Leaf size={14} /> : <Flame size={14} />}
+      <span>{isRelax ? 'Relax' : 'Acid Flow'}</span>
     </button>
   );
 }

@@ -1,6 +1,6 @@
 @import 'tailwindcss';
 
-/* GYM Acid Flow — единственная тема: тёмная. Светлый вариант временно отключён. */
+/* GYM Acid Flow — основная тема: тёмная. Relax — спокойная светлая (йога). */
 @theme {
   /* layout */
   --color-canvas: #000000;        /* «обои» вокруг моб-каркаса */
@@ -33,6 +33,31 @@
   --font-sans: 'Space Grotesk', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, system-ui, sans-serif;
   --font-display: 'Bowlby One', 'Space Grotesk', system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', 'Cascadia Mono', Consolas, monospace;
+}
+
+/* Relax — спокойная светлая тема для йоги: молочные беж, шалфей, тёплый коралл.
+   Активируется через [data-theme='relax'] на <html>. */
+[data-theme='relax'] {
+  --color-canvas: #e8e1d4;
+  --color-bg: #f4efe5;
+  --color-card: #ffffff;
+  --color-card-elevated: #f6f2e8;
+  --color-chip: #ede6d6;
+  --color-line: rgba(60, 50, 40, 0.10);
+  --color-line-strong: rgba(60, 50, 40, 0.18);
+  --color-ink: #2c2419;
+  --color-ink-muted: #6b5d4a;
+  --color-ink-mutedXL: #9c8a72;
+  --color-accent: #87a86b;          /* шалфей */
+  --color-accent-on: #ffffff;
+  --color-accent-text: #5c7a4a;
+  --color-accent-2: #c89b6b;        /* тёплый охряный */
+  --color-success: #6b8c4a;
+  --color-success-soft: #e6efd6;
+  --color-danger: #c5634a;
+  --color-danger-soft: #fae8e0;
+  --color-coral: #d68760;
+  --color-amber: #c8a460;
 }
 
 html, body, #root {

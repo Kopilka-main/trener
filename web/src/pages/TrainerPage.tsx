@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Bell, Building2, ChevronRight, Instagram, LogOut, Mail, Pencil, Phone, PieChart, Send, Settings, Share2 } from 'lucide-react';
+import { ThemeToggle } from '../components/ThemeToggle';
 import { ScreenHeader } from '../components/ScreenHeader';
 import { Avatar } from '../components/Avatar';
 import { useConfirm } from '../components/ConfirmProvider';
@@ -117,6 +118,11 @@ export function TrainerPage() {
           )}
           <SettingRow icon={PieChart} label="Бухгалтерия" onClick={() => navigate('/trainer/accounting')} />
           <SettingRow icon={Building2} label="Залы" onClick={() => navigate('/trainer/gyms')} />
+          <div className="flex w-full items-center gap-3 border-b border-[var(--color-line)] bg-[var(--color-card)] px-4 py-3.5">
+            <Settings size={17} className="shrink-0 text-[var(--color-ink-muted)]" />
+            <span className="flex-1 text-[14px] font-medium">Тема</span>
+            <ThemeToggle />
+          </div>
           <SettingRow icon={Bell} label="Уведомления" last />
         </div>
 
