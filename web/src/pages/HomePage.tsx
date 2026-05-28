@@ -8,6 +8,7 @@ import { useClients } from '../api/clients';
 import { useSessions } from '../api/sessions';
 import { useExercises } from '../api/exercises';
 import { useTrainerAlerts } from '../api/alerts';
+import { useAccountingSummary } from '../api/accounting';
 
 const DAY_SHORT = ['ВС', 'ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ', 'СБ'];
 const MONTH_FULL = ['ЯНВАРЯ', 'ФЕВРАЛЯ', 'МАРТА', 'АПРЕЛЯ', 'МАЯ', 'ИЮНЯ', 'ИЮЛЯ', 'АВГУСТА', 'СЕНТЯБРЯ', 'ОКТЯБРЯ', 'НОЯБРЯ', 'ДЕКАБРЯ'];
@@ -45,6 +46,8 @@ export function HomePage() {
   const now = new Date();
   const today = isoDate(now);
   const weekAhead = isoDate(new Date(now.getTime() + 7 * 86400000));
+  const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  const { data: finance } = useAccountingSummary(currentMonth, 'month');
   const monthAhead = isoDate(new Date(now.getTime() + 30 * 86400000));
   const { data: sessions } = useSessions(today, weekAhead);
   const { data: sessionsMonth } = useSessions(today, monthAhead);
@@ -137,25 +140,67 @@ export function HomePage() {
   return (
     <div className="flex h-full flex-col">
       <div className="flex flex-1 flex-col overflow-y-auto px-5 pb-7 pt-1">
-        {/* ─── Шапка-карточка тренера ─── */}
+        {/* ─── A5: крупная шапка-карточка тренера с финансом ─── */}
         <button
           onClick={() => navigate('/trainer/profile')}
-          className="flex w-full items-center gap-3 rounded-2xl border border-[var(--color-line)] bg-[var(--color-card)] px-4 py-3.5 text-left active:scale-[0.99] transition-transform"
+          className="flex w-full items-center gap-4 rounded-2xl border border-[var(--color-line)] bg-[var(--color-card)] p-4 text-left active:scale-[0.99] transition-transform"
         >
           <span
-            className="flex h-11 w-11 items-center justify-center rounded-full text-[15px] font-bold"
+            className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full font-[family-name:var(--font-display)] text-[20px]"
             style={{ background: 'var(--color-amber, #c9974b)', color: 'var(--color-accent-on)' }}
           >
             {trainerInitials}
           </span>
           <span className="min-w-0 flex-1">
-            <span className="block truncate text-[15px] font-bold leading-tight tracking-[-0.01em]">{trainerName}</span>
-            <span className="mt-0.5 block truncate text-[11px] font-semibold tracking-[0.03em] text-[var(--color-ink-muted)]">
+            <span className="block truncate text-[17px] font-bold leading-tight tracking-[-0.01em]">{trainerName}</span>
+            <span className="mt-0.5 block truncate text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--color-ink-muted)]">
               {trainerTitle}
             </span>
+            {finance && (
+              <span className="mt-2 flex items-baseline gap-1.5 font-[family-name:var(--font-mono)] text-[11px] uppercase tracking-[0.08em]">
+                <span className="text-[var(--color-ink-mutedXL)]">МЕСЯЦ:</span>
+                <span className="font-bold" style={{ color: finance.profit >= 0 ? 'var(--color-accent-text)' : 'var(--color-danger)' }}>
+                  {finance.profit >= 0 ? '+' : ''}{finance.profit.toLocaleString('ru-RU')}&nbsp;₽
+                </span>
+              </span>
+            )}
           </span>
           <ChevronRight size={14} className="shrink-0 text-[var(--color-ink-mutedXL)]" />
         </button>
+
+        {/* ─── A4: компактный блок финансов (доходы / расходы) ─── */}
+        {finance && (
+          <button
+            onClick={() => navigate('/trainer/accounting')}
+            className="mt-3 flex items-stretch gap-2"
+            aria-label="Бухгалтерия"
+          >
+            <div className="flex-1 rounded-2xl border border-[var(--color-line)] bg-[var(--color-card)] px-3 py-2.5 text-left">
+              <div className="font-[family-name:var(--font-mono)] text-[9px] font-bold uppercase tracking-[0.12em] text-[var(--color-ink-mutedXL)]">
+                ДОХОД
+              </div>
+              <div className="mt-0.5 font-[family-name:var(--font-display)] text-[20px] leading-none tabular-nums" style={{ color: 'var(--color-accent-text)' }}>
+                {Math.round(finance.income / 1000)}<span className="text-[12px] font-bold text-[var(--color-ink-muted)]">K</span>
+              </div>
+            </div>
+            <div className="flex-1 rounded-2xl border border-[var(--color-line)] bg-[var(--color-card)] px-3 py-2.5 text-left">
+              <div className="font-[family-name:var(--font-mono)] text-[9px] font-bold uppercase tracking-[0.12em] text-[var(--color-ink-mutedXL)]">
+                РАСХОД
+              </div>
+              <div className="mt-0.5 font-[family-name:var(--font-display)] text-[20px] leading-none tabular-nums">
+                {Math.round(finance.expenses / 1000)}<span className="text-[12px] font-bold text-[var(--color-ink-muted)]">K</span>
+              </div>
+            </div>
+            <div className="flex-1 rounded-2xl border border-[var(--color-line)] bg-[var(--color-card)] px-3 py-2.5 text-left">
+              <div className="font-[family-name:var(--font-mono)] text-[9px] font-bold uppercase tracking-[0.12em] text-[var(--color-ink-mutedXL)]">
+                ПРИБЫЛЬ
+              </div>
+              <div className="mt-0.5 font-[family-name:var(--font-display)] text-[20px] leading-none tabular-nums" style={{ color: finance.profit >= 0 ? 'var(--color-ink)' : 'var(--color-danger)' }}>
+                {Math.round(finance.profit / 1000)}<span className="text-[12px] font-bold text-[var(--color-ink-muted)]">K</span>
+              </div>
+            </div>
+          </button>
+        )}
 
         {/* ─── Hero: «СЕГОДНЯ» ─── */}
         <div className="px-1 pb-1 pt-6">
