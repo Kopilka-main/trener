@@ -13,6 +13,7 @@ import { useClientStats, type ClientStats } from '../api/client-stats';
 import { calcAge, formatBirth } from '../lib/format';
 import { fullName } from '../lib/initials';
 import type { PaymentPackage, PaymentPackageInput } from '../api/types';
+import { ContactLink, contactList } from '../components/ContactLink';
 
 // Полноценная страница карточки клиента. Открывается тапом по клиенту в списке.
 // Сверху — крупная CTA «Перейти к тренировкам», ниже — данные и история.
@@ -27,6 +28,7 @@ export function ClientCardPage() {
   if (!client) return null;
 
   const age = calcAge(client.birthDate);
+  const contacts = contactList(client);
   const tags = (client.hashtags ?? '').split(/\s+/).filter(Boolean);
   const history = workouts?.history ?? [];
   const totalWorkouts = history.length + (workouts?.current ? 1 : 0);
@@ -123,9 +125,18 @@ export function ClientCardPage() {
           <PackagesBlock clientId={id} />
         </Section>
 
+        {contacts.length > 0 && (
+          <Section title="Связь">
+            <div className="overflow-hidden rounded-2xl">
+              {contacts.map((c, i) => (
+                <ContactLink key={c.kind} kind={c.kind} value={c.value} last={i === contacts.length - 1} />
+              ))}
+            </div>
+          </Section>
+        )}
+
         <Section title="Персональные данные">
           <div className="overflow-hidden rounded-2xl">
-            <Row label="Телефон" value={client.phone ?? '—'} />
             <Row
               label="Дата рождения"
               value={

@@ -6,6 +6,10 @@ export type Client = {
   heightCm: number | null;
   weightKg: number | null;
   phone: string | null;
+  telegram: string | null;
+  whatsapp: string | null;
+  instagram: string | null;
+  max: string | null;
   hashtags: string | null;
   notes: string | null;
   medicalNotes: string | null;

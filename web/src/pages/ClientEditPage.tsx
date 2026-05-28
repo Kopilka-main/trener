@@ -18,6 +18,10 @@ const empty: ClientInput = {
   heightCm: null,
   weightKg: null,
   phone: null,
+  telegram: null,
+  whatsapp: null,
+  instagram: null,
+  max: null,
   hashtags: null,
   notes: null,
   medicalNotes: null,
@@ -145,9 +149,18 @@ export function ClientEditPage({ mode }: Props) {
           </p>
         </Section>
 
-        <Section title="Личное">
+        <Section title="Связь">
           <div className="overflow-hidden rounded-2xl">
             <RowInput label="Телефон" value={form.phone ?? ''} onChange={(v) => setField('phone', v || null)} />
+            <RowInput label="Telegram" placeholder="@username" value={form.telegram ?? ''} onChange={(v) => setField('telegram', v || null)} />
+            <RowInput label="WhatsApp" placeholder="+7 ..." value={form.whatsapp ?? ''} onChange={(v) => setField('whatsapp', v || null)} />
+            <RowInput label="Instagram" placeholder="@username" value={form.instagram ?? ''} onChange={(v) => setField('instagram', v || null)} />
+            <RowInput label="MAX" placeholder="username" value={form.max ?? ''} onChange={(v) => setField('max', v || null)} last />
+          </div>
+        </Section>
+
+        <Section title="Личное">
+          <div className="overflow-hidden rounded-2xl">
             <RowInput label="Дата рождения" type="date" value={form.birthDate ?? ''} onChange={(v) => setField('birthDate', v || null)} />
             <RowInput label="Рост" suffix="см" inputMode="numeric" value={form.heightCm?.toString() ?? ''} onChange={(v) => setField('heightCm', v ? Number(v) : null)} />
             <RowInput label="Вес" suffix="кг" inputMode="decimal" value={form.weightKg?.toString() ?? ''} onChange={(v) => setField('weightKg', v ? Number(v) : null)} last />

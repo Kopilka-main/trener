@@ -13,6 +13,10 @@ const clientInput = z.object({
   heightCm: z.number().int().positive().nullish(),
   weightKg: z.number().positive().nullish(),
   phone: z.string().max(40).nullish(),
+  telegram: z.string().max(80).nullish(),
+  whatsapp: z.string().max(40).nullish(),
+  instagram: z.string().max(80).nullish(),
+  max: z.string().max(80).nullish(),
   hashtags: z.string().max(500).nullish(),
   notes: z.string().max(4000).nullish(),
   medicalNotes: z.string().max(4000).nullish(),
@@ -34,6 +38,10 @@ function toApi(row: ClientRow) {
     heightCm: row.height_cm,
     weightKg: row.weight_kg,
     phone: row.phone,
+    telegram: row.telegram,
+    whatsapp: row.whatsapp,
+    instagram: row.instagram,
+    max: row.max,
     hashtags: row.hashtags,
     notes: row.notes,
     medicalNotes: row.medical_notes,
@@ -49,11 +57,13 @@ function toApi(row: ClientRow) {
 const insertStmt = db.prepare(`
   INSERT INTO clients (
     id, first_name, last_name, birth_date, height_cm, weight_kg,
-    phone, hashtags, notes, medical_notes, resting_pulse,
+    phone, telegram, whatsapp, instagram, max,
+    hashtags, notes, medical_notes, resting_pulse,
     schedule_day, schedule_time, current_training_type, account_id, created_at
   ) VALUES (
     @id, @first_name, @last_name, @birth_date, @height_cm, @weight_kg,
-    @phone, @hashtags, @notes, @medical_notes, @resting_pulse,
+    @phone, @telegram, @whatsapp, @instagram, @max,
+    @hashtags, @notes, @medical_notes, @resting_pulse,
     @schedule_day, @schedule_time, @current_training_type, @account_id, @created_at
   )
 `);
@@ -66,6 +76,10 @@ const updateStmt = db.prepare(`
     height_cm = @height_cm,
     weight_kg = @weight_kg,
     phone = @phone,
+    telegram = @telegram,
+    whatsapp = @whatsapp,
+    instagram = @instagram,
+    max = @max,
     hashtags = @hashtags,
     notes = @notes,
     medical_notes = @medical_notes,
@@ -90,6 +104,10 @@ function toRowParams(input: ClientInput, id: string, createdAt: string) {
     height_cm: input.heightCm ?? null,
     weight_kg: input.weightKg ?? null,
     phone: input.phone ?? null,
+    telegram: input.telegram ?? null,
+    whatsapp: input.whatsapp ?? null,
+    instagram: input.instagram ?? null,
+    max: input.max ?? null,
     hashtags: input.hashtags ?? null,
     notes: input.notes ?? null,
     medical_notes: input.medicalNotes ?? null,

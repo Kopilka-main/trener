@@ -14,6 +14,18 @@ db.pragma('foreign_keys = ON');
 const schema = readFileSync(SCHEMA_PATH, 'utf-8');
 db.exec(schema);
 
+// Лёгкая миграция новых колонок (SQLite не поддерживает IF NOT EXISTS в ALTER).
+function ensureColumn(table: string, name: string, def: string) {
+  const cols = db.prepare(`PRAGMA table_info(${table})`).all() as { name: string }[];
+  if (!cols.some((c) => c.name === name)) {
+    db.exec(`ALTER TABLE ${table} ADD COLUMN ${name} ${def}`);
+  }
+}
+ensureColumn('clients', 'telegram', 'TEXT');
+ensureColumn('clients', 'whatsapp', 'TEXT');
+ensureColumn('clients', 'instagram', 'TEXT');
+ensureColumn('clients', 'max', 'TEXT');
+
 export type ClientRow = {
   id: string;
   first_name: string;
@@ -22,6 +34,10 @@ export type ClientRow = {
   height_cm: number | null;
   weight_kg: number | null;
   phone: string | null;
+  telegram: string | null;
+  whatsapp: string | null;
+  instagram: string | null;
+  max: string | null;
   hashtags: string | null;
   notes: string | null;
   medical_notes: string | null;
