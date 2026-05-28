@@ -107,6 +107,73 @@ button {
   animation: metric-fade-up 0.45s cubic-bezier(0.2, 0.7, 0.2, 1);
 }
 
+/* «Кубик прокатывается сверху вниз» (odometer-style).
+   Каждый символ — окошко с overflow-hidden, внутри лента из 2 строк. При смене
+   value лента сдвигается на 1em вниз. */
+
+.cube-window {
+  display: inline-block;
+  /* 1.15em: компромисс — окно достаточно высокое чтобы вместить русские
+     диакритики (Й, Ё) с descender'ами, но не слишком раздутое. */
+  height: 1.15em;
+  line-height: 1.15em;
+  overflow: hidden;
+  vertical-align: baseline;
+  clip-path: inset(0);
+}
+
+.cube-track {
+  display: block;
+  transform: translateY(0);
+  transition: transform 420ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.cube-track.roll {
+  transform: translateY(-1.15em);
+}
+
+.cube-slot {
+  display: block;
+  height: 1.15em;
+  line-height: 1.15em;
+  white-space: pre;
+}
+
+/* Row-window: вся метрика (число + лейбл) переворачивается как один блок.
+   Первый слот в normal flow (определяет высоту окна), второй абсолютно
+   позиционирован под ним. При роле track сдвигается на -100% — первый уезжает
+   за пределы окна, второй занимает его место. */
+.metric-row-window {
+  display: block;
+  position: relative;
+  overflow: hidden;
+  clip-path: inset(0);
+}
+
+.metric-row-track {
+  display: block;
+  position: relative;
+  transform: translateY(0);
+  transition: transform 460ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.metric-row-track.roll {
+  transform: translateY(-100%);
+}
+
+.metric-row-slot {
+  display: block;
+}
+
+/* Второй слот «спрятан» прямо под первым — окно его не показывает,
+   пока track не сдвинется на -100%. */
+.metric-row-slot:nth-child(2) {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+}
+
 /* Hide native number input arrows */
 input[type='number']::-webkit-outer-spin-button,
 input[type='number']::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }

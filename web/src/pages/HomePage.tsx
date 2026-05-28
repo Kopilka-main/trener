@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AlertTriangle, ArrowUpRight, BookOpen, CalendarDays, ChevronRight, MessageSquare, Users } from 'lucide-react';
+import { ArrowUpRight, Bell, BookOpen, CalendarDays, MessageSquare, UserCircle2, Users, Wallet } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
+import { FlapText } from '../components/FlapText';
 import { useTrainer } from '../api/trainer';
 import { useChatUnread } from '../api/chat';
 import { useClients } from '../api/clients';
@@ -32,12 +33,13 @@ function diffShort(future: Date, now: Date): string {
   return `${h}Ч ${m}М`;
 }
 
-type Metric = { v: string; s: string };
+type Metric = { v: string; s: string | string[] };
+type TileKey = 'clients' | 'calendar' | 'chat' | 'exercises' | 'finance' | 'profile';
 
 export function HomePage() {
   const navigate = useNavigate();
   const { data: trainer } = useTrainer();
-  void useChatUnread('trainer'); // запрос остаётся (для invalidation), значение не используем — chatBadge захардкожен
+  void useChatUnread('trainer');
   const { data: clients } = useClients();
   const { data: exercises } = useExercises();
   const { data: alerts = [] } = useTrainerAlerts();
@@ -48,11 +50,13 @@ export function HomePage() {
   const weekAhead = isoDate(new Date(now.getTime() + 7 * 86400000));
   const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   const { data: finance } = useAccountingSummary(currentMonth, 'month');
+  const { data: financeQ } = useAccountingSummary(currentMonth, 'quarter');
+  const { data: financeY } = useAccountingSummary(currentMonth, 'year');
   const monthAhead = isoDate(new Date(now.getTime() + 30 * 86400000));
   const { data: sessions } = useSessions(today, weekAhead);
   const { data: sessionsMonth } = useSessions(today, monthAhead);
 
-  // Заглушка для демо-режима — плитка Чат всегда горит acid.
+  // Заглушка для демо-режима — плитка Сообщения всегда горит acid.
   const chatBadge = 3;
   const clientsCount = clients?.length ?? 48;
   const exercisesCount = exercises?.length ?? 86;
@@ -88,17 +92,31 @@ export function HomePage() {
   const trainerName = trainer ? `${trainer.firstName} ${trainer.lastName}` : 'Алексей Морозов';
   const trainerTitle = trainer?.title ?? 'Персональный тренер';
 
-  // Один acid-fill на экран — primary тайл: чат если есть непрочитанные.
-  const primaryKey: 'chat' | null = chatBadge > 0 ? 'chat' : null;
+  // Один acid-fill на экран — primary плитка: чат если есть непрочитанные.
+  const primaryKey: TileKey | null = chatBadge > 0 ? 'chat' : null;
 
-  // Порядок: [Клиенты][Календарь] / [Сообщения][База знаний]
+  // Финансы за периоды. Если в БД мало данных и значения совпали — подменяем
+  // демо-числами, чтобы ротация на плитке давала разные значения для смены.
+  const rawM = finance?.profit ?? 0;
+  const rawQ = financeQ?.profit ?? 0;
+  const rawY = financeY?.profit ?? 0;
+  const allSame = rawM === rawQ && rawQ === rawY;
+  const profitM = rawM || allSame ? (rawM || 74000) : rawM;
+  const profitQ = allSame ? 220000 : (rawQ || 220000);
+  const profitY = allSame ? 1100000 : (rawY || 1100000);
+  // Знак: положительные — без знака, отрицательные — с «−». В тысячах ₽, без суффикса.
+  const fmtThousands = (n: number) => `${n < 0 ? '−' : ''}${Math.abs(Math.round(n / 1000))}`;
+  const profitColor = profitM >= 0 ? 'var(--color-accent-text)' : 'var(--color-danger)';
+
   const tiles: Array<{
-    key: 'clients' | 'calendar' | 'chat' | 'exercises';
+    key: TileKey;
     title: string;
     sub: string;
     metrics: Metric[];
     Icon: LucideIcon;
     onClick: () => void;
+    metricColor?: string;
+    kicker?: string;
   }> = [
     {
       key: 'clients',
@@ -135,80 +153,62 @@ export function HomePage() {
       Icon: BookOpen,
       onClick: () => navigate('/trainer/exercises'),
     },
+    {
+      key: 'finance',
+      title: 'Финансы',
+      sub: 'бухгалтерия',
+      metrics: [
+        { v: fmtThousands(profitM), s: ['тыс', 'за', '1 мес'] },
+        { v: fmtThousands(profitQ), s: ['тыс', 'за', '3 мес'] },
+        { v: fmtThousands(profitY), s: ['тыс', 'за', '12 мес'] },
+      ],
+      metricColor: profitColor,
+      Icon: Wallet,
+      onClick: () => navigate('/trainer/accounting'),
+    },
+    {
+      key: 'profile',
+      title: trainerName,
+      sub: trainerTitle.toLowerCase(),
+      metrics: [],
+      kicker: 'ПРОФИЛЬ',
+      Icon: UserCircle2,
+      onClick: () => navigate('/trainer/profile'),
+    },
   ];
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex flex-1 flex-col overflow-y-auto px-5 pb-7 pt-1">
-        {/* ─── A5: крупная шапка-карточка тренера с финансом ─── */}
+      <div className="relative flex flex-1 flex-col overflow-y-auto px-5 pb-7 pt-2">
+        {/* ─── Top bar: только дата слева ─── */}
+        <div className="flex items-center gap-2 font-[family-name:var(--font-mono)] text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--color-ink-mutedXL)]">
+          <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-[var(--color-accent)]" />
+          {dateLabel}
+        </div>
+
+        {/* ─── Колокольчик уведомлений — справа, ниже даты, на уровне hero ─── */}
         <button
-          onClick={() => navigate('/trainer/profile')}
-          className="flex w-full items-center gap-4 rounded-2xl border border-[var(--color-line)] bg-[var(--color-card)] p-4 text-left active:scale-[0.99] transition-transform"
+          onClick={() => navigate('/trainer/notifications')}
+          aria-label={`Уведомления (${alerts.length})`}
+          className="absolute right-5 top-16 z-10 flex items-center gap-1.5 active:scale-95 transition-transform"
         >
+          <Bell
+            size={22}
+            strokeWidth={2}
+            fill={alerts.length > 0 ? 'var(--color-accent)' : 'none'}
+            style={{ color: alerts.length > 0 ? 'var(--color-accent)' : 'var(--color-ink-mutedXL)' }}
+          />
           <span
-            className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full font-[family-name:var(--font-display)] text-[20px]"
-            style={{ background: 'var(--color-amber, #c9974b)', color: 'var(--color-accent-on)' }}
+            className="font-[family-name:var(--font-mono)] text-[15px] font-bold tabular-nums"
+            style={{ color: alerts.length > 0 ? 'var(--color-ink)' : 'var(--color-ink-mutedXL)' }}
           >
-            {trainerInitials}
+            {pad2(alerts.length)}
           </span>
-          <span className="min-w-0 flex-1">
-            <span className="block truncate text-[17px] font-bold leading-tight tracking-[-0.01em]">{trainerName}</span>
-            <span className="mt-0.5 block truncate text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--color-ink-muted)]">
-              {trainerTitle}
-            </span>
-            {finance && (
-              <span className="mt-2 flex items-baseline gap-1.5 font-[family-name:var(--font-mono)] text-[11px] uppercase tracking-[0.08em]">
-                <span className="text-[var(--color-ink-mutedXL)]">МЕСЯЦ:</span>
-                <span className="font-bold" style={{ color: finance.profit >= 0 ? 'var(--color-accent-text)' : 'var(--color-danger)' }}>
-                  {finance.profit >= 0 ? '+' : ''}{finance.profit.toLocaleString('ru-RU')}&nbsp;₽
-                </span>
-              </span>
-            )}
-          </span>
-          <ChevronRight size={14} className="shrink-0 text-[var(--color-ink-mutedXL)]" />
         </button>
 
-        {/* ─── A4: компактный блок финансов (доходы / расходы) ─── */}
-        {finance && (
-          <button
-            onClick={() => navigate('/trainer/accounting')}
-            className="mt-3 flex items-stretch gap-2"
-            aria-label="Бухгалтерия"
-          >
-            <div className="flex-1 rounded-2xl border border-[var(--color-line)] bg-[var(--color-card)] px-3 py-2.5 text-left">
-              <div className="font-[family-name:var(--font-mono)] text-[9px] font-bold uppercase tracking-[0.12em] text-[var(--color-ink-mutedXL)]">
-                ДОХОД
-              </div>
-              <div className="mt-0.5 font-[family-name:var(--font-display)] text-[20px] leading-none tabular-nums" style={{ color: 'var(--color-accent-text)' }}>
-                {Math.round(finance.income / 1000)}<span className="text-[12px] font-bold text-[var(--color-ink-muted)]">K</span>
-              </div>
-            </div>
-            <div className="flex-1 rounded-2xl border border-[var(--color-line)] bg-[var(--color-card)] px-3 py-2.5 text-left">
-              <div className="font-[family-name:var(--font-mono)] text-[9px] font-bold uppercase tracking-[0.12em] text-[var(--color-ink-mutedXL)]">
-                РАСХОД
-              </div>
-              <div className="mt-0.5 font-[family-name:var(--font-display)] text-[20px] leading-none tabular-nums">
-                {Math.round(finance.expenses / 1000)}<span className="text-[12px] font-bold text-[var(--color-ink-muted)]">K</span>
-              </div>
-            </div>
-            <div className="flex-1 rounded-2xl border border-[var(--color-line)] bg-[var(--color-card)] px-3 py-2.5 text-left">
-              <div className="font-[family-name:var(--font-mono)] text-[9px] font-bold uppercase tracking-[0.12em] text-[var(--color-ink-mutedXL)]">
-                ПРИБЫЛЬ
-              </div>
-              <div className="mt-0.5 font-[family-name:var(--font-display)] text-[20px] leading-none tabular-nums" style={{ color: finance.profit >= 0 ? 'var(--color-ink)' : 'var(--color-danger)' }}>
-                {Math.round(finance.profit / 1000)}<span className="text-[12px] font-bold text-[var(--color-ink-muted)]">K</span>
-              </div>
-            </div>
-          </button>
-        )}
-
-        {/* ─── Hero: «СЕГОДНЯ» ─── */}
-        <div className="px-1 pb-1 pt-6">
-          <div className="flex items-center gap-2 font-[family-name:var(--font-mono)] text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--color-ink-mutedXL)]">
-            <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-[var(--color-accent)]" />
-            {dateLabel}
-          </div>
-          <div className="mt-2.5 flex flex-wrap items-baseline gap-3">
+        {/* ─── Hero: «СЕГОДНЯ» (большое число сессий) ─── */}
+        <div className="px-1 pb-1 pt-3">
+          <div className="flex flex-wrap items-baseline gap-3">
             <span
               className="font-[family-name:var(--font-display)] text-[64px] leading-none tracking-[-0.03em]"
               style={{ color: 'var(--color-accent-text)' }}
@@ -233,39 +233,20 @@ export function HomePage() {
           )}
         </div>
 
-        {/* ─── Баннер уведомлений ─── */}
-        {alerts.length > 0 && (
-          <button
-            onClick={() => navigate('/trainer/notifications')}
-            className="mt-4 flex w-full items-center gap-3 rounded-2xl border px-4 py-3 text-left active:scale-[0.99] transition-transform"
-            style={{
-              borderColor: hasDangerAlert ? 'var(--color-danger)' : 'var(--color-amber)',
-              background: hasDangerAlert ? 'var(--color-danger-soft)' : 'rgba(232, 178, 85, 0.12)',
-            }}
-          >
-            <AlertTriangle
-              size={18}
-              className="shrink-0"
-              style={{ color: hasDangerAlert ? 'var(--color-danger)' : 'var(--color-amber)' }}
-            />
-            <div className="min-w-0 flex-1">
-              <div className="font-[family-name:var(--font-mono)] text-[10px] font-bold uppercase tracking-[0.12em]" style={{ color: hasDangerAlert ? 'var(--color-danger)' : 'var(--color-amber)' }}>
-                {hasDangerAlert ? 'СРОЧНО · ' : 'УВЕДОМЛЕНИЯ · '}
-                {alerts.length} {alerts.length === 1 ? 'событие' : alerts.length < 5 ? 'события' : 'событий'}
-              </div>
-              <div className="mt-0.5 truncate text-[13px] font-semibold">
-                {alerts[0].message}
-              </div>
-            </div>
-            <ChevronRight size={14} className="shrink-0 opacity-60" />
-          </button>
-        )}
-
-        {/* ─── Сетка 2×2 модулей — растёт на всё свободное место ─── */}
-        <div className="mt-4 grid flex-1 grid-cols-2 gap-2.5">
-          {tiles.map((tile) => {
+        {/* ─── Сетка 2×3 модулей, плитки квадратные ─── */}
+        <div className="mt-5 grid grid-cols-2 gap-2.5">
+          {tiles.map((tile, i) => {
             const { key, ...rest } = tile;
-            return <Tile key={key} {...rest} isPrimary={primaryKey === key} />;
+            // Фазовый сдвиг по позиции в сетке — каждая плитка стартует со своим
+            // delay, чтобы ротации не накладывались синхронно.
+            return (
+              <Tile
+                key={key}
+                {...rest}
+                isPrimary={primaryKey === key}
+                phaseOffsetMs={i * 1700}
+              />
+            );
           })}
         </div>
       </div>
@@ -280,29 +261,146 @@ type TileProps = {
   Icon: LucideIcon;
   onClick: () => void;
   isPrimary: boolean;
+  metricColor?: string;
+  kicker?: string;
+  /** Начальный сдвиг фазы ротации (мс) — даёт каждой плитке свой ритм. */
+  phaseOffsetMs?: number;
 };
 
-function Tile({ title, sub, metrics, Icon, onClick, isPrimary }: TileProps) {
-  // Ротация метрик каждые 3.6с. Для одного значения — статика.
+/**
+ * MetricRow — вся строка метрики (число + лейбл) переворачивается как один
+ * блок: лента из двух одинаковых слотов сдвигается на -50% за один проход.
+ * Никаких рассинхронов между числом и подписью.
+ */
+function MetricRow({
+  metric,
+  metricColor,
+  labelColor,
+}: {
+  metric: Metric;
+  metricColor?: string;
+  labelColor: string;
+}) {
+  const [front, setFront] = useState(metric);
+  const [next, setNext] = useState(metric);
+  const [rolling, setRolling] = useState(false);
+  const [resetKey, setResetKey] = useState(0);
+
+  useEffect(() => {
+    const sameV = front.v === metric.v;
+    const sameS = Array.isArray(front.s) && Array.isArray(metric.s)
+      ? front.s.length === metric.s.length && front.s.every((x, i) => x === (metric.s as string[])[i])
+      : front.s === metric.s;
+    if (sameV && sameS) return;
+    setNext(metric);
+    const t1 = window.setTimeout(() => setRolling(true), 16);
+    const t2 = window.setTimeout(() => {
+      setFront(metric);
+      setNext(metric);
+      setRolling(false);
+      setResetKey((k) => k + 1);
+    }, 16 + 460);
+    return () => {
+      window.clearTimeout(t1);
+      window.clearTimeout(t2);
+    };
+  }, [metric, front]);
+
+  return (
+    <div className="metric-row-window mb-1">
+      <div key={resetKey} className={`metric-row-track${rolling ? ' roll' : ''}`}>
+        <div className="metric-row-slot">
+          <MetricRowContent metric={front} metricColor={metricColor} labelColor={labelColor} />
+        </div>
+        <div className="metric-row-slot">
+          <MetricRowContent metric={next} metricColor={metricColor} labelColor={labelColor} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MetricRowContent({
+  metric,
+  metricColor,
+  labelColor,
+}: {
+  metric: Metric;
+  metricColor?: string;
+  labelColor: string;
+}) {
+  return (
+    <div className="flex items-center gap-2.5">
+      <span
+        className="shrink-0 font-[family-name:var(--font-display)] text-[36px] leading-none tracking-[-0.03em] tabular-nums"
+        style={metricColor ? { color: metricColor } : undefined}
+      >
+        {metric.v}
+      </span>
+      <MetricLabel value={metric.s} color={labelColor} />
+    </div>
+  );
+}
+
+/**
+ * Метка метрики. Принимает строку (одна строка) или массив строк (вертикальный стек).
+ *  • строка вида «за X мес» — авто-разделение на две строки «за» / «X мес».
+ *  • массив — рендерится как есть, каждый элемент — своя строка.
+ */
+function MetricLabel({ value, color }: { value: string | string[]; color: string }) {
+  // JetBrains Mono — моноширинный шрифт, нет глитчей при смене длины строки.
+  const cls = 'font-[family-name:var(--font-mono)] font-bold uppercase tracking-[0.08em] text-[10px] leading-[1.1] whitespace-pre';
+  // Массив → вертикальный стек строк.
+  if (Array.isArray(value)) {
+    return (
+      <span className="inline-flex flex-col" style={{ color }}>
+        {value.map((line, i) => (
+          <span key={i} className={cls}>{line}</span>
+        ))}
+      </span>
+    );
+  }
+  // Строка «за X мес» → две строки.
+  const m = /^(за)\s+(.+)$/i.exec(value);
+  if (!m) {
+    return <span className={cls} style={{ color }}>{value}</span>;
+  }
+  return (
+    <span className="inline-flex flex-col" style={{ color }}>
+      <span className={cls}>{m[1]}</span>
+      <span className={cls}>{m[2]}</span>
+    </span>
+  );
+}
+
+function Tile({ title, sub, metrics, Icon, onClick, isPrimary, metricColor, kicker, phaseOffsetMs = 0 }: TileProps) {
+  // Ротация метрик каждые 5.2с с начальным фазовым сдвигом, чтобы плитки
+  // переключались не одновременно, а в разное время.
   const [idx, setIdx] = useState(0);
   useEffect(() => {
     if (metrics.length <= 1) return;
-    const t = setInterval(() => setIdx((x) => (x + 1) % metrics.length), 3600);
-    return () => clearInterval(t);
-  }, [metrics.length]);
-  const current = metrics[idx] ?? metrics[0];
+    let intervalId: number | undefined;
+    const startId = window.setTimeout(() => {
+      setIdx((x) => (x + 1) % metrics.length);
+      intervalId = window.setInterval(() => setIdx((x) => (x + 1) % metrics.length), 5200);
+    }, Math.max(0, phaseOffsetMs));
+    return () => {
+      window.clearTimeout(startId);
+      if (intervalId !== undefined) window.clearInterval(intervalId);
+    };
+  }, [metrics.length, phaseOffsetMs]);
+  const current = metrics.length > 0 ? (metrics[idx] ?? metrics[0]) : null;
 
   return (
     <button
       onClick={onClick}
       className={
-        'relative flex h-full min-h-[168px] flex-col rounded-2xl px-3.5 pb-4 pt-3.5 text-left active:scale-[0.97] transition-transform ' +
+        'relative flex min-h-[220px] flex-col rounded-2xl px-3.5 pb-4 pt-3.5 text-left active:scale-[0.97] transition-transform ' +
         (isPrimary
           ? 'bg-[var(--color-accent)] text-[var(--color-accent-on)]'
           : 'border border-[var(--color-line)] bg-[var(--color-card)]')
       }
     >
-      {/* icon-square */}
       <span
         className="flex h-10 w-10 items-center justify-center rounded-lg"
         style={
@@ -314,7 +412,6 @@ function Tile({ title, sub, metrics, Icon, onClick, isPrimary }: TileProps) {
         <Icon size={20} strokeWidth={1.8} />
       </span>
 
-      {/* arrow */}
       <ArrowUpRight
         size={14}
         className={`absolute right-3.5 top-4 ${isPrimary ? 'opacity-70' : 'opacity-40'}`}
@@ -323,24 +420,26 @@ function Tile({ title, sub, metrics, Icon, onClick, isPrimary }: TileProps) {
 
       <span className="flex-1" />
 
-      {/* mono number row — key={current.v + current.s} → re-mount → CSS-анимация */}
-      <div key={current.v + current.s} className="metric-anim mb-1 flex items-baseline gap-1 overflow-hidden">
-        <span className="font-[family-name:var(--font-display)] text-[36px] leading-none tracking-[-0.03em] tabular-nums">
-          {current.v}
-        </span>
-        <span
-          className="text-[10px] font-bold uppercase tracking-[0.08em]"
-          style={{ color: isPrimary ? 'rgba(11,12,16,0.65)' : 'var(--color-ink-muted)' }}
+      {kicker && (
+        <div
+          className="mb-1 font-[family-name:var(--font-mono)] text-[10px] font-bold uppercase tracking-[0.16em]"
+          style={{ color: isPrimary ? 'rgba(11,12,16,0.55)' : 'var(--color-ink-mutedXL)' }}
         >
-          {current.s}
-        </span>
-      </div>
+          {kicker}
+        </div>
+      )}
 
-      {/* title */}
-      <div className="text-[17px] font-bold leading-none tracking-[-0.02em]">{title}</div>
-      {/* sub */}
+      {current && (
+        <MetricRow
+          metric={current}
+          metricColor={metricColor}
+          labelColor={isPrimary ? 'rgba(11,12,16,0.65)' : 'var(--color-ink-muted)'}
+        />
+      )}
+
+      <div className="truncate text-[17px] font-bold leading-tight tracking-[-0.02em]">{title}</div>
       <div
-        className="mt-1 text-[11px] font-semibold tracking-[0.01em]"
+        className="mt-1 truncate text-[11px] font-semibold tracking-[0.01em]"
         style={{ color: isPrimary ? 'rgba(11,12,16,0.55)' : 'var(--color-ink-mutedXL)' }}
       >
         {sub}
