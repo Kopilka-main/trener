@@ -26,6 +26,7 @@ server/data.db-wal
 
 # misc binaries / screenshots
 *.msi
+*.exe
 Copilot_*.png
 
 # design reference (распакованный архив дизайн-системы GYM)
