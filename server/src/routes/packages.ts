@@ -71,10 +71,42 @@ function computeTotal(input: PackageInput): number {
   return input.totalPaid ?? input.lessonsPaid * input.pricePerLesson;
 }
 
+// Авто-архив: если у клиента проведено сессий ≥ оплаченных в активном пакете,
+// помечаем пакет как closed. Считаем только пакеты status='active' и сессии
+// status='completed'. Распределение «по очереди» — старшие пакеты закрываются первыми.
+const archiveCheckStmt = db.prepare<[string], { id: string; lessons_paid: number; created_at: string }>(
+  `SELECT id, lessons_paid, created_at FROM payment_packages
+   WHERE client_id = ? AND status = 'active'
+   ORDER BY created_at ASC`
+);
+const completedSessionsStmt = db.prepare<[string], { n: number }>(
+  `SELECT COUNT(*) AS n FROM sessions
+   WHERE client_id = ? AND status = 'completed'`
+);
+const archivePackageStmt = db.prepare(
+  `UPDATE payment_packages SET status = 'closed' WHERE id = ?`
+);
+
+function autoArchive(clientId: string) {
+  const activePkgs = archiveCheckStmt.all(clientId);
+  if (activePkgs.length === 0) return;
+  let completed = completedSessionsStmt.get(clientId)?.n ?? 0;
+  // Старшие пакеты закрываются первыми.
+  for (const p of activePkgs) {
+    if (completed >= p.lessons_paid) {
+      archivePackageStmt.run(p.id);
+      completed -= p.lessons_paid;
+    } else {
+      break; // у этого пакета ещё остались занятия → следующие тоже активны
+    }
+  }
+}
+
 clientPackagesRouter.get(
   '/',
   asyncHandler((req, res) => {
     const clientId = req.params.id;
+    autoArchive(clientId);
     res.json(listByClientStmt.all(clientId).map(toApi));
   })
 );

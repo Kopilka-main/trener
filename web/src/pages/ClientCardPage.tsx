@@ -421,6 +421,8 @@ function StatsSection({ clientId }: { clientId: string }) {
 
 function StatsBody({ clientId }: { clientId: string }) {
   const { data: stats } = useClientStats(clientId);
+  const { data: workouts } = useClientWorkouts(clientId);
+  const history = workouts?.history ?? [];
   if (!stats) {
     return (
       <div className="rounded-2xl bg-[var(--color-card)] p-4 text-[13px] text-[var(--color-ink-muted)]">
@@ -479,6 +481,39 @@ function StatsBody({ clientId }: { clientId: string }) {
               </li>
             ))}
           </ul>
+        </div>
+      )}
+
+      {history.length > 0 && (
+        <div className="rounded-2xl bg-[var(--color-card)] p-4">
+          <div className="flex items-baseline justify-between text-[11px] font-semibold uppercase tracking-wider text-[var(--color-ink-muted)]">
+            <span>Проведённые тренировки</span>
+            <span className="text-[10px] tabular-nums">{history.length}</span>
+          </div>
+          <ul className="mt-2 space-y-1.5">
+            {history.slice(0, 10).map((w) => (
+              <li key={w.id} className="flex items-baseline justify-between gap-2 text-[13px]">
+                <div className="min-w-0 flex-1">
+                  <div className="truncate font-medium">{w.name}</div>
+                  {w.categoryTag && (
+                    <div className="truncate text-[11px] text-[var(--color-ink-muted)]">
+                      {w.categoryTag}
+                      {w.rpe ? ` · RPE ${w.rpe}` : ''}
+                      {w.durationSec ? ` · ${Math.round(w.durationSec / 60)} мин` : ''}
+                    </div>
+                  )}
+                </div>
+                <span className="shrink-0 text-[11px] tabular-nums text-[var(--color-ink-muted)]">
+                  {w.completedAt ? new Date(w.completedAt).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' }) : '—'}
+                </span>
+              </li>
+            ))}
+          </ul>
+          {history.length > 10 && (
+            <div className="mt-2 text-center text-[11px] text-[var(--color-ink-muted)]">
+              и ещё {history.length - 10} …
+            </div>
+          )}
         </div>
       )}
 
