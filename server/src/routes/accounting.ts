@@ -30,23 +30,48 @@ const totalExpensesStmt = db.prepare<[string, string], { total: number | null }>
   WHERE date >= ? AND date <= ?
 `);
 
+function rangeFor(month: string, kind: 'month' | 'quarter' | 'year'): { from: string; to: string } {
+  // month = YYYY-MM (опорный). Возвращает [from, to] в формате YYYY-MM-DD.
+  const [y, m] = month.split('-').map(Number);
+  if (kind === 'year') {
+    return { from: `${y}-01-01`, to: `${y}-12-31` };
+  }
+  if (kind === 'quarter') {
+    const q = Math.floor((m - 1) / 3); // 0..3
+    const startM = q * 3 + 1;
+    const endM = startM + 2;
+    return { from: `${y}-${String(startM).padStart(2, '0')}-01`, to: `${y}-${String(endM).padStart(2, '0')}-31` };
+  }
+  return { from: `${month}-01`, to: `${month}-31` };
+}
+
 accountingRouter.get(
   '/summary',
   asyncHandler((req, res) => {
-    // Параметр month=YYYY-MM (по умолчанию — текущий).
     const month = String(req.query.month ?? new Date().toISOString().slice(0, 7));
     if (!/^\d{4}-\d{2}$/.test(month)) {
       res.status(400).json({ error: 'Bad month format, expected YYYY-MM' });
       return;
     }
-    const from = `${month}-01`;
-    // Конец месяца: грубо 31, БД отфильтрует лишнее.
-    const to = `${month}-31`;
+    const rangeKind = String(req.query.range ?? 'month') as 'month' | 'quarter' | 'year';
+    if (rangeKind !== 'month' && rangeKind !== 'quarter' && rangeKind !== 'year') {
+      res.status(400).json({ error: 'range must be month|quarter|year' });
+      return;
+    }
+    // Кастомный произвольный интервал: ?from=YYYY-MM-DD&to=YYYY-MM-DD имеет приоритет над range.
+    const customFrom = req.query.from ? String(req.query.from) : null;
+    const customTo = req.query.to ? String(req.query.to) : null;
+    const { from, to } = customFrom && customTo
+      ? { from: customFrom, to: customTo }
+      : rangeFor(month, rangeKind);
     const income = totalIncomeStmt.get(from, to)?.total ?? 0;
     const expenses = totalExpensesStmt.get(from, to)?.total ?? 0;
     const byClient = incomeStmt.all(from, to);
     res.json({
       month,
+      range: rangeKind,
+      from,
+      to,
       income,
       expenses,
       profit: income - expenses,

@@ -197,6 +197,9 @@ export type IncomeItem = {
 
 export type AccountingSummary = {
   month: string;
+  range?: 'month' | 'quarter' | 'year';
+  from?: string;
+  to?: string;
   income: number;
   expenses: number;
   profit: number;

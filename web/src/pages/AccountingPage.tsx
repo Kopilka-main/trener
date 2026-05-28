@@ -4,7 +4,7 @@ import { ChevronLeft, ChevronRight, Plus, Trash2 } from 'lucide-react';
 import { ScreenHeader } from '../components/ScreenHeader';
 import { Field, TextArea, TextInput } from '../components/Field';
 import { useConfirm } from '../components/ConfirmProvider';
-import { useAccountingSummary, useIncomeList } from '../api/accounting';
+import { useAccountingSummary, useIncomeList, type AccountingRange } from '../api/accounting';
 import { useCreateExpense, useDeleteExpense, useExpenses } from '../api/expenses';
 import { useGyms } from '../api/gyms';
 import type { Expense } from '../api/types';
@@ -15,15 +15,21 @@ const EXPENSE_CATEGORIES = ['Аренда', 'Инвентарь', 'Обучен�
 
 export function AccountingPage() {
   const [month, setMonth] = useState(() => new Date().toISOString().slice(0, 7));
+  const [range, setRange] = useState<AccountingRange>('month');
   const [tab, setTab] = useState<Tab>('summary');
-  const from = `${month}-01`;
-  const to = `${month}-31`;
+  const period = computePeriod(month, range);
 
   return (
     <div className="flex h-full flex-col">
       <ScreenHeader title="Бухгалтерия" back />
       <div className="px-4">
-        <MonthSwitcher month={month} onChange={setMonth} />
+        <RangePresets value={range} onChange={setRange} />
+        <PeriodSwitcher
+          month={month}
+          range={range}
+          onShift={(dir) => setMonth(shiftPeriod(month, range, dir))}
+          label={period.label}
+        />
         <div className="mt-2 grid grid-cols-3 rounded-2xl bg-[var(--color-chip)] p-1">
           <TabButton active={tab === 'summary'} onClick={() => setTab('summary')}>Сводка</TabButton>
           <TabButton active={tab === 'income'} onClick={() => setTab('income')}>Доходы</TabButton>
@@ -31,30 +37,54 @@ export function AccountingPage() {
         </div>
       </div>
       <div className="flex-1 overflow-y-auto px-4 pb-8 pt-3">
-        {tab === 'summary' && <SummaryTab month={month} />}
-        {tab === 'income' && <IncomeTab from={from} to={to} />}
-        {tab === 'expenses' && <ExpensesTab from={from} to={to} />}
+        {tab === 'summary' && <SummaryTab month={month} range={range} />}
+        {tab === 'income' && <IncomeTab from={period.from} to={period.to} />}
+        {tab === 'expenses' && <ExpensesTab from={period.from} to={period.to} />}
       </div>
     </div>
   );
 }
 
-function MonthSwitcher({ month, onChange }: { month: string; onChange: (m: string) => void }) {
+function RangePresets({ value, onChange }: { value: AccountingRange; onChange: (r: AccountingRange) => void }) {
+  const opts: { v: AccountingRange; label: string }[] = [
+    { v: 'month', label: 'Месяц' },
+    { v: 'quarter', label: 'Квартал' },
+    { v: 'year', label: 'Год' },
+  ];
+  return (
+    <div className="mt-2 inline-flex rounded-full bg-[var(--color-chip)] p-0.5">
+      {opts.map((o) => {
+        const active = o.v === value;
+        return (
+          <button
+            key={o.v}
+            onClick={() => onChange(o.v)}
+            className={`rounded-full px-3 py-1 text-[12px] font-medium ${active ? 'bg-[var(--color-accent)] text-[var(--color-accent-on)]' : 'text-[var(--color-ink-muted)]'}`}
+          >
+            {o.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function PeriodSwitcher({ month, range, onShift, label }: { month: string; range: AccountingRange; onShift: (d: -1 | 1) => void; label: string }) {
   const navigate = useNavigate();
   return (
     <div className="flex items-center justify-between pt-2">
       <button
-        onClick={() => onChange(shiftMonth(month, -1))}
+        onClick={() => onShift(-1)}
         className="flex h-9 w-9 items-center justify-center rounded-full active:bg-black/5"
-        aria-label="Прошлый месяц"
+        aria-label="Предыдущий период"
       >
         <ChevronLeft size={18} />
       </button>
-      <div className="text-[15px] font-bold capitalize">{formatMonthRu(month)}</div>
+      <div className="text-[15px] font-bold capitalize" title={`${month} · ${range}`}>{label}</div>
       <button
-        onClick={() => onChange(shiftMonth(month, 1))}
+        onClick={() => onShift(1)}
         className="flex h-9 w-9 items-center justify-center rounded-full active:bg-black/5"
-        aria-label="Следующий месяц"
+        aria-label="Следующий период"
       >
         <ChevronRight size={18} />
       </button>
@@ -66,6 +96,33 @@ function MonthSwitcher({ month, onChange }: { month: string; onChange: (m: strin
       </button>
     </div>
   );
+}
+
+function computePeriod(month: string, range: AccountingRange): { label: string; from: string; to: string } {
+  const [y, m] = month.split('-').map(Number);
+  if (range === 'year') {
+    return { label: String(y), from: `${y}-01-01`, to: `${y}-12-31` };
+  }
+  if (range === 'quarter') {
+    const q = Math.floor((m - 1) / 3); // 0..3
+    const startM = q * 3 + 1;
+    const endM = startM + 2;
+    return {
+      label: `${q + 1}-й квартал ${y}`,
+      from: `${y}-${String(startM).padStart(2, '0')}-01`,
+      to: `${y}-${String(endM).padStart(2, '0')}-31`,
+    };
+  }
+  return { label: formatMonthRu(month), from: `${month}-01`, to: `${month}-31` };
+}
+
+function shiftPeriod(month: string, range: AccountingRange, dir: -1 | 1): string {
+  const [y, m] = month.split('-').map(Number);
+  if (range === 'year') return `${y + dir}-${String(m).padStart(2, '0')}`;
+  if (range === 'quarter') {
+    return shiftMonth(month, dir * 3);
+  }
+  return shiftMonth(month, dir);
 }
 
 function TabButton({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
@@ -81,8 +138,8 @@ function TabButton({ active, onClick, children }: { active: boolean; onClick: ()
 
 // ─── Сводка ────────────────────────────────────────────────────────────────
 
-function SummaryTab({ month }: { month: string }) {
-  const { data: summary } = useAccountingSummary(month);
+function SummaryTab({ month, range }: { month: string; range: AccountingRange }) {
+  const { data: summary } = useAccountingSummary(month, range);
   if (!summary) return <div className="text-center text-[13px] text-[var(--color-ink-muted)]">Загрузка…</div>;
   const profitColor = summary.profit >= 0 ? 'var(--color-success)' : 'var(--color-danger)';
   return (
