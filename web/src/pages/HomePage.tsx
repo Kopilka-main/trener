@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowUpRight, BookOpen, CalendarDays, ChevronRight, MessageSquare, Users } from 'lucide-react';
+import { AlertTriangle, ArrowUpRight, BookOpen, CalendarDays, ChevronRight, MessageSquare, Users } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useTrainer } from '../api/trainer';
 import { useChatUnread } from '../api/chat';
 import { useClients } from '../api/clients';
 import { useSessions } from '../api/sessions';
 import { useExercises } from '../api/exercises';
+import { useTrainerAlerts } from '../api/alerts';
 
 const DAY_SHORT = ['ВС', 'ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ', 'СБ'];
 const MONTH_FULL = ['ЯНВАРЯ', 'ФЕВРАЛЯ', 'МАРТА', 'АПРЕЛЯ', 'МАЯ', 'ИЮНЯ', 'ИЮЛЯ', 'АВГУСТА', 'СЕНТЯБРЯ', 'ОКТЯБРЯ', 'НОЯБРЯ', 'ДЕКАБРЯ'];
@@ -38,6 +39,8 @@ export function HomePage() {
   void useChatUnread('trainer'); // запрос остаётся (для invalidation), значение не используем — chatBadge захардкожен
   const { data: clients } = useClients();
   const { data: exercises } = useExercises();
+  const { data: alerts = [] } = useTrainerAlerts();
+  const hasDangerAlert = alerts.some((a) => a.severity === 'danger');
 
   const now = new Date();
   const today = isoDate(now);
@@ -185,8 +188,36 @@ export function HomePage() {
           )}
         </div>
 
+        {/* ─── Баннер уведомлений ─── */}
+        {alerts.length > 0 && (
+          <button
+            onClick={() => navigate('/trainer/notifications')}
+            className="mt-4 flex w-full items-center gap-3 rounded-2xl border px-4 py-3 text-left active:scale-[0.99] transition-transform"
+            style={{
+              borderColor: hasDangerAlert ? 'var(--color-danger)' : 'var(--color-amber)',
+              background: hasDangerAlert ? 'var(--color-danger-soft)' : 'rgba(232, 178, 85, 0.12)',
+            }}
+          >
+            <AlertTriangle
+              size={18}
+              className="shrink-0"
+              style={{ color: hasDangerAlert ? 'var(--color-danger)' : 'var(--color-amber)' }}
+            />
+            <div className="min-w-0 flex-1">
+              <div className="font-[family-name:var(--font-mono)] text-[10px] font-bold uppercase tracking-[0.12em]" style={{ color: hasDangerAlert ? 'var(--color-danger)' : 'var(--color-amber)' }}>
+                {hasDangerAlert ? 'СРОЧНО · ' : 'УВЕДОМЛЕНИЯ · '}
+                {alerts.length} {alerts.length === 1 ? 'событие' : alerts.length < 5 ? 'события' : 'событий'}
+              </div>
+              <div className="mt-0.5 truncate text-[13px] font-semibold">
+                {alerts[0].message}
+              </div>
+            </div>
+            <ChevronRight size={14} className="shrink-0 opacity-60" />
+          </button>
+        )}
+
         {/* ─── Сетка 2×2 модулей — растёт на всё свободное место ─── */}
-        <div className="mt-5 grid flex-1 grid-cols-2 gap-2.5">
+        <div className="mt-4 grid flex-1 grid-cols-2 gap-2.5">
           {tiles.map((tile) => {
             const { key, ...rest } = tile;
             return <Tile key={key} {...rest} isPrimary={primaryKey === key} />;
