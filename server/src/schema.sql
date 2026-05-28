@@ -32,6 +32,7 @@ CREATE TABLE IF NOT EXISTS exercises (
   description TEXT,
   category TEXT NOT NULL,
   target_muscles TEXT,
+  equipment TEXT,
   default_reps INTEGER,
   default_weight_kg REAL,
   default_time_sec INTEGER,

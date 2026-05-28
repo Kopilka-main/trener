@@ -17,6 +17,7 @@ const empty: ExerciseInput = {
   description: null,
   category: 'Грудь',
   targetMuscles: [],
+  equipment: null,
   defaultReps: 10,
   defaultWeightKg: null,
   defaultTimeSec: null,

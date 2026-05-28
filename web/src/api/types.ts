@@ -30,6 +30,7 @@ export type Exercise = {
   description: string | null;
   category: string;
   targetMuscles: string[];
+  equipment: string | null;
   defaultReps: number | null;
   defaultWeightKg: number | null;
   defaultTimeSec: number | null;

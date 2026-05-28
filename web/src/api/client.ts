@@ -40,8 +40,12 @@ function mockResponse(method: string, fullPath: string): unknown | undefined {
     if (path === '/api/exercises') {
       const term = q.get('q')?.toLowerCase();
       const cat = q.get('category');
+      const equipment = q.get('equipment');
+      const muscle = q.get('muscle');
       return mockExercises.filter((e) => {
         if (cat && e.category !== cat) return false;
+        if (equipment && e.equipment !== equipment) return false;
+        if (muscle && !e.targetMuscles.includes(muscle)) return false;
         if (term && !e.name.toLowerCase().includes(term)) return false;
         return true;
       });

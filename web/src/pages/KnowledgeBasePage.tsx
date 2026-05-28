@@ -3,19 +3,32 @@ import { useNavigate } from 'react-router-dom';
 import { Plus, Search, ChevronRight } from 'lucide-react';
 import { useExercises } from '../api/exercises';
 import { useWorkoutTemplates } from '../api/workout-templates';
-import { EXERCISE_CATEGORIES } from '../lib/catalog';
+import { CATEGORY_GROUPS, EQUIPMENT } from '../lib/catalog';
 import { appBase } from '../lib/routes';
 
-type Tab = 'workouts' | 'exercises';
+type Tab = 'workouts' | 'exercises' | 'flex';
 
 export function KnowledgeBasePage() {
   const navigate = useNavigate();
   const [tab, setTab] = useState<Tab>('workouts');
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState<string | null>(null);
-  const exercises = useExercises(query, category ?? undefined);
+  const [equipment, setEquipment] = useState<string | null>(null);
+  // На табе exercises видны силовые категории; на flex — растяжка/кардио/йога; на workouts — нет фильтра по категории.
+  const activeCats = tab === 'flex' ? CATEGORY_GROUPS.flexCardio : CATEGORY_GROUPS.power;
+  const apiCategory = category && activeCats.includes(category as never) ? category : undefined;
+  // На табе flex — если не выбрана конкретная категория, берём все три (Кардио, Растяжка, Йога).
+  // Поскольку API возвращает за раз одну — фильтруем на клиенте через category-list.
+  const exercises = useExercises(query, apiCategory, equipment ?? undefined);
   const templates = useWorkoutTemplates(query);
   const filteredTemplates = (templates.data ?? []).filter((t) => !category || t.muscleGroup === category);
+
+  const flexExercises = (exercises.data ?? []).filter((e) =>
+    (CATEGORY_GROUPS.flexCardio as readonly string[]).includes(e.category)
+  );
+  const powerExercises = (exercises.data ?? []).filter((e) =>
+    !(CATEGORY_GROUPS.flexCardio as readonly string[]).includes(e.category)
+  );
 
   return (
     <div className="flex h-full flex-col">
@@ -43,20 +56,39 @@ export function KnowledgeBasePage() {
             onClick={() => navigate(`${appBase()}/exercises/new`)}
           />
         </div>
-        <div className="mt-3 grid grid-cols-2 rounded-2xl bg-[var(--color-chip)] p-1">
-          <SegmentTab active={tab === 'workouts'} onClick={() => setTab('workouts')} count={filteredTemplates.length}>
+        <div className="mt-3 grid grid-cols-3 rounded-2xl bg-[var(--color-chip)] p-1">
+          <SegmentTab active={tab === 'workouts'} onClick={() => { setTab('workouts'); setCategory(null); setEquipment(null); }} count={filteredTemplates.length}>
             Тренировки
           </SegmentTab>
-          <SegmentTab active={tab === 'exercises'} onClick={() => setTab('exercises')} count={exercises.data?.length ?? 0}>
+          <SegmentTab active={tab === 'exercises'} onClick={() => { setTab('exercises'); setCategory(null); setEquipment(null); }} count={powerExercises.length}>
             Упражнения
           </SegmentTab>
+          <SegmentTab active={tab === 'flex'} onClick={() => { setTab('flex'); setCategory(null); setEquipment(null); }} count={flexExercises.length}>
+            Растяжка
+          </SegmentTab>
         </div>
+
+        {/* Фильтр по группам мышц / категории */}
         <div className="mt-3 -mx-5 flex gap-1.5 overflow-x-auto px-5 pb-2">
           <FilterChip active={category === null} onClick={() => setCategory(null)}>Все</FilterChip>
-          {EXERCISE_CATEGORIES.map((c) => (
+          {activeCats.map((c) => (
             <FilterChip key={c} active={category === c} onClick={() => setCategory(c)}>{c}</FilterChip>
           ))}
         </div>
+
+        {/* Фильтр по тренажёру — только для табов exercises/flex */}
+        {(tab === 'exercises' || tab === 'flex') && (
+          <div className="-mx-5 flex gap-1.5 overflow-x-auto px-5 pb-2">
+            <FilterChip active={equipment === null} onClick={() => setEquipment(null)}>
+              <span className="opacity-60">Снаряд:</span> все
+            </FilterChip>
+            {EQUIPMENT.map((eq) => (
+              <FilterChip key={eq} active={equipment === eq} onClick={() => setEquipment(eq)}>
+                {eq}
+              </FilterChip>
+            ))}
+          </div>
+        )}
       </header>
 
       <div className="flex-1 overflow-y-auto px-4 pt-3 pb-3">
@@ -80,9 +112,9 @@ export function KnowledgeBasePage() {
             {filteredTemplates.length === 0 && <Empty text={query || category ? 'Ничего не найдено' : 'Тренировок пока нет'} />}
           </ul>
         )}
-        {tab === 'exercises' && (
+        {(tab === 'exercises' || tab === 'flex') && (
           <ul className="space-y-2">
-            {(exercises.data ?? []).map((ex) => (
+            {(tab === 'flex' ? flexExercises : powerExercises).map((ex) => (
               <li key={ex.id}>
                 <button
                   onClick={() => navigate(`${appBase()}/exercises/${ex.id}/edit`)}
@@ -90,13 +122,19 @@ export function KnowledgeBasePage() {
                 >
                   <div className="min-w-0 flex-1">
                     <div className="text-[15px] font-semibold leading-tight">{ex.name}</div>
-                    <div className="mt-0.5 text-[12px] text-[var(--color-ink-muted)]">{ex.category}{ex.targetMuscles.length > 0 ? ` · ${ex.targetMuscles.join(', ')}` : ''}</div>
+                    <div className="mt-0.5 text-[12px] text-[var(--color-ink-muted)]">
+                      {ex.category}
+                      {ex.equipment ? ` · ${ex.equipment}` : ''}
+                      {ex.targetMuscles.length > 0 ? ` · ${ex.targetMuscles.join(', ')}` : ''}
+                    </div>
                   </div>
                   <ChevronRight size={18} className="shrink-0 text-[var(--color-ink-muted)]" />
                 </button>
               </li>
             ))}
-            {exercises.data?.length === 0 && <Empty text={query || category ? 'Ничего не найдено' : 'Упражнений пока нет'} />}
+            {(tab === 'flex' ? flexExercises : powerExercises).length === 0 && (
+              <Empty text={query || category || equipment ? 'Ничего не найдено' : 'Упражнений пока нет'} />
+            )}
           </ul>
         )}
       </div>

@@ -2,13 +2,15 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from './client';
 import type { Exercise, ExerciseInput } from './types';
 
-export function useExercises(query?: string, category?: string) {
+export function useExercises(query?: string, category?: string, equipment?: string, muscle?: string) {
   const params = new URLSearchParams();
   if (query) params.set('q', query);
   if (category) params.set('category', category);
+  if (equipment) params.set('equipment', equipment);
+  if (muscle) params.set('muscle', muscle);
   const qs = params.toString();
   return useQuery({
-    queryKey: ['exercises', query ?? '', category ?? ''],
+    queryKey: ['exercises', query ?? '', category ?? '', equipment ?? '', muscle ?? ''],
     queryFn: () => api.get<Exercise[]>(`/api/exercises${qs ? `?${qs}` : ''}`),
   });
 }

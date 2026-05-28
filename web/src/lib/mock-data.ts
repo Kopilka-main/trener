@@ -101,24 +101,72 @@ const exerciseNames: Record<string, string[]> = {
   Кардио: ['Бег на дорожке', 'Велотренажёр', 'Эллипс', 'Гребной тренажёр'],
 };
 
+const equipmentByCategory: Record<string, string[]> = {
+  'Грудь': ['Штанга', 'Гантели', 'Тренажёр блочный', 'Собственный вес'],
+  'Спина': ['Штанга', 'Гантели', 'Тренажёр блочный', 'Собственный вес'],
+  'Ноги': ['Штанга', 'Тренажёр свободного веса', 'Тренажёр блочный', 'Собственный вес'],
+  'Плечи': ['Штанга', 'Гантели', 'Тренажёр блочный'],
+  'Руки': ['Штанга', 'Гантели', 'Тренажёр блочный'],
+  'Кор': ['Собственный вес', 'Коврик', 'Тренажёр блочный'],
+  'Кардио': ['Кардио-машина'],
+  'Растяжка': ['Коврик', 'Резина', 'TRX'],
+  'Йога': ['Коврик'],
+};
+
 const mockExercisesList: Exercise[] = [];
 let exerciseId = 1;
 for (const cat of categories) {
   const names = exerciseNames[cat] || [];
-  for (const name of names) {
+  for (const [idx, name] of names.entries()) {
+    const eq = (equipmentByCategory[cat] ?? ['Собственный вес'])[idx % (equipmentByCategory[cat]?.length ?? 1)];
     mockExercisesList.push({
       id: `ex${exerciseId++}`,
       name,
-      shortDescription: `${cat.toLowerCase()} · база`,
+      shortDescription: `${cat.toLowerCase()} · ${eq.toLowerCase()}`,
       description: `${name}. Контролируй технику: спина прямая, движение плавное.`,
       category: cat,
       targetMuscles: muscleGroups[cat] ?? [],
+      equipment: eq,
       defaultReps: cat === 'Кардио' ? null : 10,
       defaultWeightKg: cat === 'Кор' || cat === 'Кардио' ? null : 60,
       defaultTimeSec: cat === 'Кардио' ? 600 : null,
       note: null,
     });
   }
+}
+
+// Добавим несколько растяжек / йоги.
+const flexNames = ['Складка стоя', 'Кошка-корова', 'Растяжка плеч на лямках', 'Поза ребёнка', 'Голубь', 'Скрутка лёжа'];
+const yogaNames = ['Приветствие солнцу A', 'Поза воина II', 'Поза дерева', 'Поза собаки мордой вниз', 'Поза трупа', 'Поза лотоса'];
+for (const name of flexNames) {
+  mockExercisesList.push({
+    id: `ex${exerciseId++}`,
+    name,
+    shortDescription: 'растяжка · коврик',
+    description: `${name}. Удерживай каждую позицию 30–60 сек, дыхание ровное.`,
+    category: 'Растяжка',
+    targetMuscles: ['Бицепс бедра', 'Грудные', 'Широчайшие'],
+    equipment: 'Коврик',
+    defaultReps: null,
+    defaultWeightKg: null,
+    defaultTimeSec: 45,
+    note: null,
+  });
+}
+for (const name of yogaNames) {
+  mockExercisesList.push({
+    id: `ex${exerciseId++}`,
+    name,
+    shortDescription: 'йога · коврик',
+    description: `${name}. Сохраняй медленное дыхание, не форсируй амплитуду.`,
+    category: 'Йога',
+    targetMuscles: ['Корпус', 'Бицепс бедра', 'Грудные'],
+    equipment: 'Коврик',
+    defaultReps: null,
+    defaultWeightKg: null,
+    defaultTimeSec: 60,
+    note: null,
+  });
 }
 
 export const mockExercises: Exercise[] = mockExercisesList;

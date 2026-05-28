@@ -25,6 +25,7 @@ ensureColumn('clients', 'telegram', 'TEXT');
 ensureColumn('clients', 'whatsapp', 'TEXT');
 ensureColumn('clients', 'instagram', 'TEXT');
 ensureColumn('clients', 'max', 'TEXT');
+ensureColumn('exercises', 'equipment', 'TEXT');
 
 export type ClientRow = {
   id: string;
@@ -56,6 +57,7 @@ export type ExerciseRow = {
   description: string | null;
   category: string;
   target_muscles: string | null;
+  equipment: string | null;
   default_reps: number | null;
   default_weight_kg: number | null;
   default_time_sec: number | null;

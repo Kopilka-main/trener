@@ -12,6 +12,7 @@ const exerciseInput = z.object({
   description: z.string().max(4000).nullish(),
   category: z.string().min(1).max(60),
   targetMuscles: z.array(z.string().min(1).max(60)).max(20).default([]),
+  equipment: z.string().max(60).nullish(),
   defaultReps: z.number().int().positive().nullish(),
   defaultWeightKg: z.number().nonnegative().nullish(),
   defaultTimeSec: z.number().int().nonnegative().nullish(),
@@ -29,6 +30,7 @@ function toApi(row: ExerciseRow) {
     description: row.description,
     category: row.category,
     targetMuscles: row.target_muscles ? (JSON.parse(row.target_muscles) as string[]) : [],
+    equipment: row.equipment,
     defaultReps: row.default_reps,
     defaultWeightKg: row.default_weight_kg,
     defaultTimeSec: row.default_time_sec,
@@ -39,9 +41,9 @@ function toApi(row: ExerciseRow) {
 
 const insertStmt = db.prepare(`
   INSERT INTO exercises (id, name, short_description, description, category, target_muscles,
-    default_reps, default_weight_kg, default_time_sec, rest_sec, note)
+    equipment, default_reps, default_weight_kg, default_time_sec, rest_sec, note)
   VALUES (@id, @name, @short_description, @description, @category, @target_muscles,
-    @default_reps, @default_weight_kg, @default_time_sec, @rest_sec, @note)
+    @equipment, @default_reps, @default_weight_kg, @default_time_sec, @rest_sec, @note)
 `);
 
 const updateStmt = db.prepare(`
@@ -51,6 +53,7 @@ const updateStmt = db.prepare(`
     description = @description,
     category = @category,
     target_muscles = @target_muscles,
+    equipment = @equipment,
     default_reps = @default_reps,
     default_weight_kg = @default_weight_kg,
     default_time_sec = @default_time_sec,
@@ -71,6 +74,7 @@ function toRowParams(input: ExerciseInput, id: string) {
     description: input.description ?? null,
     category: input.category,
     target_muscles: JSON.stringify(input.targetMuscles ?? []),
+    equipment: input.equipment ?? null,
     default_reps: input.defaultReps ?? null,
     default_weight_kg: input.defaultWeightKg ?? null,
     default_time_sec: input.defaultTimeSec ?? null,
@@ -84,8 +88,17 @@ exercisesRouter.get(
   asyncHandler((req, res) => {
     const q = String(req.query.q ?? '').trim().toLowerCase();
     const category = String(req.query.category ?? '').trim();
+    const equipment = String(req.query.equipment ?? '').trim();
+    const muscle = String(req.query.muscle ?? '').trim();
     let rows = listStmt.all();
     if (category) rows = rows.filter((r) => r.category === category);
+    if (equipment) rows = rows.filter((r) => r.equipment === equipment);
+    if (muscle) {
+      rows = rows.filter((r) => {
+        const m = r.target_muscles ? (JSON.parse(r.target_muscles) as string[]) : [];
+        return m.includes(muscle);
+      });
+    }
     if (q) rows = rows.filter((r) => `${r.name} ${r.category}`.toLowerCase().includes(q));
     res.json(rows.map(toApi));
   })

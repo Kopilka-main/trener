@@ -1,5 +1,19 @@
-export const EXERCISE_CATEGORIES = ['Грудь', 'Спина', 'Ноги', 'Плечи', 'Руки', 'Корпус', 'Кардио'] as const;
+export const EXERCISE_CATEGORIES = ['Грудь', 'Спина', 'Ноги', 'Плечи', 'Руки', 'Корпус', 'Кардио', 'Растяжка', 'Йога'] as const;
 export type ExerciseCategory = typeof EXERCISE_CATEGORIES[number];
+
+// Группировка категорий для подразделов в базе знаний.
+export const CATEGORY_GROUPS = {
+  power: ['Грудь', 'Спина', 'Ноги', 'Плечи', 'Руки', 'Корпус'] as const,
+  flexCardio: ['Кардио', 'Растяжка', 'Йога'] as const,
+};
+export type CategoryGroup = 'power' | 'flexCardio';
+
+// Тренажёры / снаряды — для фильтра.
+export const EQUIPMENT = [
+  'Штанга', 'Гантели', 'Тренажёр блочный', 'Тренажёр свободного веса',
+  'Гиря', 'Скамья', 'TRX', 'Резина', 'Собственный вес', 'Кардио-машина', 'Коврик',
+] as const;
+export type Equipment = typeof EQUIPMENT[number];
 
 export const TARGET_MUSCLES = [
   'Грудные', 'Передняя дельта', 'Средняя дельта', 'Задняя дельта',
@@ -18,6 +32,8 @@ export const MUSCLES_BY_CATEGORY: Record<ExerciseCategory, readonly string[]> = 
   'Руки': ['Бицепс', 'Трицепс', 'Брахиалис', 'Предплечья'],
   'Корпус': ['Прямая мышца живота', 'Поперечная', 'Косые'],
   'Кардио': ['Квадрицепс', 'Бицепс бедра', 'Ягодицы', 'Икры'],
+  'Растяжка': ['Бицепс бедра', 'Ягодицы', 'Грудные', 'Широчайшие', 'Квадрицепс'],
+  'Йога': ['Корпус', 'Бицепс бедра', 'Грудные', 'Ягодицы'],
 };
 
 export function musclesForCategory(category: string): readonly string[] {
