@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowUpRight, Bell, BookOpen, CalendarDays, MessageSquare, UserCircle2, Users, Wallet } from 'lucide-react';
+import { ArrowRight, ArrowUpRight, Bell, BookOpen, CalendarDays, MessageSquare, UserCircle2, Users, Wallet } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { FlapText } from '../components/FlapText';
 import { useTrainer } from '../api/trainer';
@@ -229,6 +229,17 @@ export function HomePage() {
               <span className="inline-block rounded bg-[var(--color-accent)] px-1.5 py-0.5 font-[family-name:var(--font-mono)] text-[10px] font-bold tracking-[0.06em] text-[var(--color-accent-on)]">
                 {diffShort(nextSessionDate, now)}
               </span>
+              <button
+                onClick={() => navigate(`/trainer/clients/${nextSession.clientId}`)}
+                aria-label={`Открыть карточку клиента ${nextSession.clientFirstName} ${nextSession.clientLastName}`}
+                className="flex h-6 w-6 items-center justify-center rounded-full active:scale-90 transition-transform"
+              >
+                <ArrowRight
+                  size={18}
+                  strokeWidth={2.4}
+                  style={{ color: 'var(--color-accent)' }}
+                />
+              </button>
             </div>
           )}
         </div>
