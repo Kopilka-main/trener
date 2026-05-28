@@ -85,8 +85,9 @@ export function HomePage() {
   // Один acid-fill на экран — primary тайл: чат если есть непрочитанные.
   const primaryKey: 'chat' | null = chatBadge > 0 ? 'chat' : null;
 
+  // Порядок: [Клиенты][Календарь] / [Сообщения][База знаний]
   const tiles: Array<{
-    key: 'exercises' | 'calendar' | 'chat' | 'clients';
+    key: 'clients' | 'calendar' | 'chat' | 'exercises';
     title: string;
     sub: string;
     metrics: Metric[];
@@ -94,12 +95,12 @@ export function HomePage() {
     onClick: () => void;
   }> = [
     {
-      key: 'exercises',
-      title: 'Упражнения',
-      sub: 'база и шаблоны',
-      metrics: [{ v: pad2(exercisesCount), s: 'в базе' }],
-      Icon: BookOpen,
-      onClick: () => navigate('/trainer/exercises'),
+      key: 'clients',
+      title: 'Клиенты',
+      sub: 'контакты и пакеты',
+      metrics: [{ v: pad2(clientsCount), s: 'активных' }],
+      Icon: Users,
+      onClick: () => navigate('/trainer/clients'),
     },
     {
       key: 'calendar',
@@ -114,19 +115,19 @@ export function HomePage() {
     },
     {
       key: 'chat',
-      title: 'Чат',
+      title: 'Сообщения',
       sub: 'клиенты и заметки',
       metrics: [{ v: pad2(chatBadge), s: 'новых' }],
       Icon: MessageSquare,
       onClick: () => navigate('/trainer/chat'),
     },
     {
-      key: 'clients',
-      title: 'Клиенты',
-      sub: 'контакты и пакеты',
-      metrics: [{ v: pad2(clientsCount), s: 'активных' }],
-      Icon: Users,
-      onClick: () => navigate('/trainer/clients'),
+      key: 'exercises',
+      title: 'База знаний',
+      sub: 'упражнения и шаблоны',
+      metrics: [{ v: pad2(exercisesCount), s: 'в базе' }],
+      Icon: BookOpen,
+      onClick: () => navigate('/trainer/exercises'),
     },
   ];
 
