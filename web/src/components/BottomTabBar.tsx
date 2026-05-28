@@ -7,13 +7,13 @@ type Tab = { to: string; label: string; key?: 'chat' };
 const trainerTabs: Tab[] = [
   { to: `${TRAINER_BASE}/exercises`, label: 'Упражнения' },
   { to: `${TRAINER_BASE}/clients`, label: 'Клиенты' },
-  { to: `${TRAINER_BASE}/chat`, label: 'Чат', key: 'chat' },
+  { to: `${TRAINER_BASE}/chat`, label: 'Сообщения', key: 'chat' },
 ];
 
 const clientTabs: Tab[] = [
   { to: `${CLIENT_BASE}/workouts`, label: 'Мои тренировки' },
   { to: `${CLIENT_BASE}/exercises`, label: 'Упражнения' },
-  { to: `${CLIENT_BASE}/chat`, label: 'Чат', key: 'chat' },
+  { to: `${CLIENT_BASE}/chat`, label: 'Сообщения', key: 'chat' },
 ];
 
 export function BottomTabBar({ role }: { role: 'trainer' | 'client' }) {
