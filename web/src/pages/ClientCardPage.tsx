@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { AlertTriangle, BarChart3, CalendarDays, ChevronDown, ChevronRight, ChevronUp, Dumbbell, MessageSquare, Pencil, Plus, Trophy, Wallet, X } from 'lucide-react';
+import { AlertTriangle, BarChart3, CalendarDays, ChevronDown, ChevronRight, ChevronUp, Dumbbell, FileText, MessageSquare, Pencil, Plus, Trophy, Wallet, X } from 'lucide-react';
 import { ScreenHeader } from '../components/ScreenHeader';
 import { Avatar } from '../components/Avatar';
 import { Field, TextArea, TextInput } from '../components/Field';
@@ -158,15 +158,52 @@ export function ClientCardPage() {
           </Section>
         )}
 
-        {client.medicalNotes && (
-          <Section title="Медицинская информация" indicator>
-            <div className="rounded-2xl bg-[var(--color-card)] p-4 text-[14px] leading-relaxed whitespace-pre-line">
-              {client.medicalNotes}
+        <Section title="Медкарта" indicator={!!client.medicalNotes}>
+          <div className="overflow-hidden rounded-2xl border border-[var(--color-line)] bg-[var(--color-card)]">
+            {client.medicalNotes ? (
+              <div className="border-b border-[var(--color-line)] p-4 text-[14px] leading-relaxed whitespace-pre-line">
+                {client.medicalNotes}
+              </div>
+            ) : null}
+            <div className="flex items-center gap-3 px-4 py-3 text-[12px] text-[var(--color-ink-muted)]">
+              <FileText size={14} className="shrink-0 opacity-60" />
+              <span className="flex-1">Файлы и заметки по дням</span>
+              <span className="rounded bg-[var(--color-accent)] px-1.5 py-0.5 font-[family-name:var(--font-mono)] text-[10px] font-bold uppercase tracking-wider text-[var(--color-accent-on)]">
+                СКОРО
+              </span>
             </div>
-          </Section>
-        )}
+          </div>
+        </Section>
 
         <StatsSection clientId={id} />
+
+        {/* D3 + D4: измерения объёмов и фотопрогресс — заглушки */}
+        <Section title="Прогресс тела">
+          <div className="grid grid-cols-2 gap-2">
+            <div className="rounded-2xl border border-[var(--color-line)] bg-[var(--color-card)] p-3">
+              <div className="font-[family-name:var(--font-mono)] text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--color-ink-mutedXL)]">
+                ОБЪЁМЫ
+              </div>
+              <div className="mt-1 text-[12px] text-[var(--color-ink-muted)]">
+                Вес, обхваты, % жира
+              </div>
+              <span className="mt-2 inline-block rounded bg-[var(--color-chip)] px-1.5 py-0.5 font-[family-name:var(--font-mono)] text-[9px] font-bold uppercase tracking-wider text-[var(--color-ink-muted)]">
+                СКОРО
+              </span>
+            </div>
+            <div className="rounded-2xl border border-[var(--color-line)] bg-[var(--color-card)] p-3">
+              <div className="font-[family-name:var(--font-mono)] text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--color-ink-mutedXL)]">
+                ФОТО
+              </div>
+              <div className="mt-1 text-[12px] text-[var(--color-ink-muted)]">
+                До / после
+              </div>
+              <span className="mt-2 inline-block rounded bg-[var(--color-chip)] px-1.5 py-0.5 font-[family-name:var(--font-mono)] text-[9px] font-bold uppercase tracking-wider text-[var(--color-ink-muted)]">
+                СКОРО
+              </span>
+            </div>
+          </div>
+        </Section>
 
         <button
           onClick={() => navigate(`/trainer/clients/${id}/edit`)}
