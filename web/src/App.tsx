@@ -5,6 +5,10 @@ import { ClientsPage } from './pages/ClientsPage';
 import { ClientEditPage } from './pages/ClientEditPage';
 import { ClientWorkoutsPage } from './pages/ClientWorkoutsPage';
 import { ClientCardPage } from './pages/ClientCardPage';
+import { ClientStatsPage } from './pages/ClientStatsPage';
+import { ClientPaymentPage } from './pages/ClientPaymentPage';
+import { ClientMedicalPage } from './pages/ClientMedicalPage';
+import { ClientProfileDetailsPage } from './pages/ClientProfileDetailsPage';
 import { HomePage } from './pages/HomePage';
 import { ClientProfilePage } from './pages/ClientProfilePage';
 import { KnowledgeBasePage } from './pages/KnowledgeBasePage';
@@ -86,6 +90,10 @@ export function App() {
             <Route path={`${TRAINER_BASE}/clients`} element={<ClientsPage />} />
             <Route path={`${TRAINER_BASE}/clients/new`} element={<ClientEditPage mode="create" />} />
             <Route path={`${TRAINER_BASE}/clients/:id`} element={<ClientCardPage />} />
+            <Route path={`${TRAINER_BASE}/clients/:id/stats`} element={<ClientStatsPage />} />
+            <Route path={`${TRAINER_BASE}/clients/:id/payment`} element={<ClientPaymentPage />} />
+            <Route path={`${TRAINER_BASE}/clients/:id/medical`} element={<ClientMedicalPage />} />
+            <Route path={`${TRAINER_BASE}/clients/:id/profile`} element={<ClientProfileDetailsPage />} />
             <Route path={`${TRAINER_BASE}/clients/:id/edit`} element={<ClientEditPage mode="edit" />} />
             <Route path={`${TRAINER_BASE}/clients/:id/workouts`} element={<ClientWorkoutsPage />} />
             <Route path={`${TRAINER_BASE}/exercises`} element={<KnowledgeBasePage />} />

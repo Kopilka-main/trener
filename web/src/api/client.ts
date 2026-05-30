@@ -66,7 +66,14 @@ function mockResponse(method: string, fullPath: string): unknown | undefined {
       return map;
     }
     if (path === '/api/conversations') return mockConversations;
-    if (path === '/api/conversations/unread') return { unread: 3 };
+    if (path === '/api/conversations/unread') {
+      const clientId = q.get('clientId');
+      if (clientId) {
+        // Демо: у Алины Кузнецовой (cl_001) одно непрочитанное сообщение.
+        return { unread: clientId === 'cl_001' ? 1 : 0 };
+      }
+      return { unread: 3 };
+    }
     const convByClient = path.match(/^\/api\/conversations\/by-client\/([^/]+)$/);
     if (convByClient) {
       return {

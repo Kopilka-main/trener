@@ -212,6 +212,14 @@ const unreadTotalForTrainerStmt = db.prepare<[], { n: number }>(`
     AND (c.trainer_last_read_at IS NULL OR m.created_at > c.trainer_last_read_at)
 `);
 
+const unreadForTrainerByClientStmt = db.prepare<[string], { n: number }>(`
+  SELECT COUNT(*) AS n FROM messages m
+  JOIN conversations c ON c.id = m.conversation_id
+  WHERE c.client_id = ?
+    AND m.sender_role = 'client'
+    AND (c.trainer_last_read_at IS NULL OR m.created_at > c.trainer_last_read_at)
+`);
+
 const unreadForClientStmt = db.prepare<[string], { n: number }>(`
   SELECT COUNT(*) AS n FROM messages m
   JOIN conversations c ON c.id = m.conversation_id
@@ -226,9 +234,14 @@ chatRouter.get(
     const role = String(req.query.role ?? 'trainer');
     const clientId = req.query.clientId ? String(req.query.clientId) : null;
     if (role === 'client' && !clientId) throw new HttpError(400, 'clientId required for client role');
-    const n = role === 'trainer'
-      ? unreadTotalForTrainerStmt.get()?.n ?? 0
-      : unreadForClientStmt.get(clientId!)?.n ?? 0;
+    let n: number;
+    if (role === 'trainer') {
+      n = clientId
+        ? unreadForTrainerByClientStmt.get(clientId)?.n ?? 0
+        : unreadTotalForTrainerStmt.get()?.n ?? 0;
+    } else {
+      n = unreadForClientStmt.get(clientId!)?.n ?? 0;
+    }
     res.json({ unread: n });
   })
 );

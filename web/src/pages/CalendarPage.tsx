@@ -5,7 +5,7 @@ import { ScreenHeader } from '../components/ScreenHeader';
 import { BottomSheet } from '../components/BottomSheet';
 import { useConfirm } from '../components/ConfirmProvider';
 import { useSessions, useCreateSession, useUpdateSession, useDeleteSession, useSessionPaymentStatus } from '../api/sessions';
-import { useClient, useClientBalance, useClients } from '../api/clients';
+import { useClient, useClients } from '../api/clients';
 import { useClientWorkouts } from '../api/client-workouts';
 import { useWorkoutTemplates } from '../api/workout-templates';
 import { Field, TextInput } from '../components/Field';
@@ -75,7 +75,6 @@ export function CalendarPage() {
 
   const { data: sessions = [] } = useSessions(range.from, range.to, clientId);
   const { data: paidMap = {} } = useSessionPaymentStatus(range.from, range.to);
-  const { data: clientBalance } = useClientBalance(clientId);
 
   const visible = useMemo(() => {
     if (view === 'day') return sessions.filter((s) => s.date === toISODate(anchor));
@@ -198,7 +197,6 @@ export function CalendarPage() {
                 sessions={sessions}
                 paidMap={paidMap}
                 singleClient={!!clientId}
-                clientBalance={clientBalance}
                 onPickDay={(d) => { setAnchor(d); setView('day'); }}
               />
             )}
@@ -633,14 +631,12 @@ function MonthView({
   sessions,
   paidMap,
   singleClient,
-  clientBalance,
   onPickDay,
 }: {
   anchor: Date;
   sessions: Session[];
   paidMap: Record<string, boolean>;
   singleClient: boolean;          // фильтр по конкретному клиенту → показываем статус, не счётчик
-  clientBalance?: { paid: number; upcomingPlanned: number };
   onPickDay: (d: Date) => void;
 }) {
   const cells = monthGrid(anchor);
@@ -699,20 +695,6 @@ function MonthView({
           );
         })}
       </div>
-      {singleClient && clientBalance && (
-        // Общая сводка по клиенту: оплачено всего + запланировано в будущем.
-        <div className="mt-3 flex flex-wrap items-center justify-center gap-x-3 gap-y-0.5 text-[12px]">
-          <span className="flex items-center gap-1">
-            <span className="font-bold tabular-nums" style={{ color: 'var(--color-success)' }}>{clientBalance.paid}</span>
-            <span className="text-[var(--color-ink-muted)]">оплачено</span>
-          </span>
-          <span className="text-[var(--color-ink-muted)]">·</span>
-          <span className="flex items-center gap-1">
-            <span className="font-bold tabular-nums">{clientBalance.upcomingPlanned}</span>
-            <span className="text-[var(--color-ink-muted)]">запланировано вперёд</span>
-          </span>
-        </div>
-      )}
     </div>
   );
 }

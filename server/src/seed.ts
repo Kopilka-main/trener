@@ -444,34 +444,42 @@ export function seedDemoPackagesIfEmpty(database: typeof defaultDb = defaultDb) 
 // Демо-сообщения в чате от клиента — чтобы у тренера сразу были непрочитанные
 // и в табе «Чат» отображался бейдж.
 export function seedDemoChatIfEmpty(database: typeof defaultDb = defaultDb) {
-  const count = database.prepare<[], { c: number }>('SELECT COUNT(*) AS c FROM messages').get();
-  if (count && count.c > 0) return;
   if (!database.prepare<[string], { id: string }>('SELECT id FROM clients WHERE id = ?').get('cl_001')) return;
+
+  // Идемпотентно гарантируем непрочитанное сообщение от cl_001 для демо.
+  // Если у cl_001 уже есть непрочитанное (trainer ещё не открыл) — ничего не делаем.
+  const unread = database
+    .prepare<[], { n: number }>(
+      `SELECT COUNT(*) AS n FROM messages m
+       JOIN conversations c ON c.id = m.conversation_id
+       WHERE c.client_id = 'cl_001'
+         AND m.sender_role = 'client'
+         AND (c.trainer_last_read_at IS NULL OR m.created_at > c.trainer_last_read_at)`
+    )
+    .get();
+  if (unread && unread.n > 0) return;
 
   database
     .prepare('INSERT OR IGNORE INTO conversations (id, client_id) VALUES (?, ?)')
     .run('conv_demo_001', 'cl_001');
 
   const insMsg = database.prepare(`
-    INSERT INTO messages (id, conversation_id, sender_role, body, created_at)
+    INSERT OR IGNORE INTO messages (id, conversation_id, sender_role, body, created_at)
     VALUES (@id, @conversation_id, @sender_role, @body, @created_at)
   `);
-  const ts = (offsetMin: number) => new Date(Date.now() - offsetMin * 60_000).toISOString();
+  const nowIso = new Date().toISOString();
   insMsg.run({
-    id: 'msg_demo_001',
+    id: `msg_demo_${Date.now()}`,
     conversation_id: 'conv_demo_001',
     sender_role: 'client',
     body: 'Здравствуйте! Подскажите, во вторник в 18:00 силу делаем?',
-    created_at: ts(120),
+    created_at: nowIso,
   });
-  insMsg.run({
-    id: 'msg_demo_002',
-    conversation_id: 'conv_demo_001',
-    sender_role: 'client',
-    body: 'И ещё — спина немного беспокоит, можно без становой? 🙏',
-    created_at: ts(60),
-  });
-  console.log('[seed] demo chat messages inserted');
+  // Сбрасываем trainer_last_read_at, чтобы новое сообщение точно стало непрочитанным.
+  database
+    .prepare(`UPDATE conversations SET trainer_last_read_at = NULL WHERE id = ?`)
+    .run('conv_demo_001');
+  console.log('[seed] demo unread chat message ensured for cl_001');
 }
 
 if (import.meta.url === `file://${process.argv[1].replace(/\\/g, '/')}` || import.meta.url === `file:///${process.argv[1].replace(/\\/g, '/')}`) {

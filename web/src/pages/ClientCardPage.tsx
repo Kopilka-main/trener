@@ -1,20 +1,21 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { AlertTriangle, BarChart3, CalendarDays, ChevronDown, ChevronRight, ChevronUp, Dumbbell, FileText, MessageSquare, Pencil, Plus, Trophy, Wallet, X } from 'lucide-react';
+import { AlertTriangle, BarChart3, CalendarDays, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Dumbbell, FileText, MessageSquare, Pencil, Plus, TrendingUp, Trophy, Wallet, X } from 'lucide-react';
 import { ScreenHeader } from '../components/ScreenHeader';
 import { Avatar } from '../components/Avatar';
 import { Field, TextArea, TextInput } from '../components/Field';
 import { useConfirm } from '../components/ConfirmProvider';
 import { useClient, useClientBalance } from '../api/clients';
 import { useClientWorkouts } from '../api/client-workouts';
+import { useSessions } from '../api/sessions';
+import { useChatUnread } from '../api/chat';
 import { useClientPackages, useCreatePackage, useDeletePackage } from '../api/packages';
 import { useCreateExpense } from '../api/expenses';
 import { useTrainerAlerts } from '../api/alerts';
 import { useClientStats, type ClientStats } from '../api/client-stats';
-import { calcAge, formatBirth } from '../lib/format';
+import { calcAge } from '../lib/format';
 import { fullName } from '../lib/initials';
 import type { PaymentPackage, PaymentPackageInput } from '../api/types';
-import { ContactLink, contactList } from '../components/ContactLink';
 
 // Полноценная страница карточки клиента. Открывается тапом по клиенту в списке.
 // Сверху — крупная CTA «Перейти к тренировкам», ниже — данные и история.
@@ -22,22 +23,62 @@ export function ClientCardPage() {
   const { id = '' } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { data: client } = useClient(id);
-  const { data: workouts } = useClientWorkouts(id);
   const { data: alerts = [] } = useTrainerAlerts();
+  const { data: balance } = useClientBalance(id);
+  const { data: stats } = useClientStats(id);
+  const { data: chatUnread } = useChatUnread('trainer', id);
+  const unread = chatUnread?.unread ?? 0;
   const myAlert = alerts.find((a) => a.clientId === id);
+
+  // Статистика: количество новых PR (личных рекордов) за последние 30 дней + эмодзи кубка.
+  const statsMetric = (() => {
+    if (!stats?.records?.length) return undefined;
+    const since = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
+    const newPRs = stats.records.filter((r) => r.date && r.date >= since).length;
+    if (newPRs === 0) return undefined;
+    return `+${pad2num(newPRs)}`;
+  })();
+
+  // Запланированные тренировки клиента: текущий месяц — для плитки "Календарь";
+  // будущие (от сегодня на 365 дней) — для расчёта баланса оплаты.
+  const now = new Date();
+  const today = `${now.getFullYear()}-${pad2num(now.getMonth() + 1)}-${pad2num(now.getDate())}`;
+  const monthFrom = `${now.getFullYear()}-${pad2num(now.getMonth() + 1)}-01`;
+  const yearAhead = new Date(now.getTime() + 365 * 86400000);
+  const yearAheadIso = `${yearAhead.getFullYear()}-${pad2num(yearAhead.getMonth() + 1)}-${pad2num(yearAhead.getDate())}`;
+  const { data: rangeSessions = [] } = useSessions(monthFrom, yearAheadIso, id);
+  const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+  const monthEndIso = `${monthEnd.getFullYear()}-${pad2num(monthEnd.getMonth() + 1)}-${pad2num(monthEnd.getDate())}`;
+  const monthPlanned = rangeSessions.filter(
+    (s) => s.status !== 'cancelled' && s.date >= monthFrom && s.date <= monthEndIso,
+  ).length;
+  const futurePlanned = rangeSessions.filter(
+    (s) => s.status !== 'cancelled' && s.date >= today,
+  ).length;
+  // Сколько из запланированных будущих тренировок не покрыты оплатой.
+  const futureNotPaid = balance ? Math.max(0, futurePlanned - balance.remaining) : 0;
+  // Сколько оплаченных тренировок ещё НЕ назначены в календаре (свободный остаток).
+  const futureNotAssigned = balance ? Math.max(0, balance.remaining - futurePlanned) : 0;
+
+  // Календарь: компактный формат "назначено / остаток". Если перерасход — остаток отрицательный.
+  const calendarMetric =
+    futurePlanned === 0 && futureNotPaid === 0 && futureNotAssigned === 0
+      ? undefined
+      : futureNotPaid > 0
+        ? `${pad2num(futurePlanned)}/−${futureNotPaid}`
+        : `${pad2num(futurePlanned)}/${futureNotAssigned}`;
+  // Тон применяется только ко второй части (после '/'): зелёный для остатка, красный для долга.
+  const calendarMetricTone: 'success' | 'danger' | undefined =
+    futureNotPaid > 0 ? 'danger' : futureNotAssigned > 0 ? 'success' : undefined;
 
   if (!client) return null;
 
   const age = calcAge(client.birthDate);
-  const contacts = contactList(client);
   const tags = (client.hashtags ?? '').split(/\s+/).filter(Boolean);
-  const history = workouts?.history ?? [];
-  const totalWorkouts = history.length + (workouts?.current ? 1 : 0);
 
   return (
     <div className="flex h-full flex-col">
-      <ScreenHeader title="Карточка клиента" back />
-      <div className="flex-1 overflow-y-auto px-4 pb-8 space-y-5">
+      <div className="flex-1 overflow-y-auto px-4 pb-8 pt-3 space-y-4">
         {/* Шапка: аватар + имя + теги */}
         <div className="rounded-3xl bg-[var(--color-card)] p-4 space-y-3">
           <div className="flex items-center gap-3">
@@ -46,11 +87,8 @@ export function ClientCardPage() {
               <div className="text-[19px] font-bold leading-tight">
                 {fullName(client.firstName, client.lastName)}
               </div>
-              <div className="mt-0.5 text-[13px] text-[var(--color-ink-muted)]">
-                {age !== null ? `${age} лет · ` : ''}{totalWorkouts} тренировок
-              </div>
-              {client.currentTrainingType && (
-                <div className="text-[12px] text-[var(--color-ink-muted)]">{client.currentTrainingType}</div>
+              {age !== null && (
+                <div className="mt-0.5 text-[13px] text-[var(--color-ink-muted)]">{age} лет</div>
               )}
             </div>
           </div>
@@ -62,6 +100,19 @@ export function ClientCardPage() {
             </div>
           )}
         </div>
+
+        {myAlert && (
+          <div
+            className="flex items-center gap-2 rounded-2xl px-3 py-2.5 text-[13px] font-medium"
+            style={{
+              background: myAlert.severity === 'danger' ? 'rgba(200,57,44,0.10)' : 'rgba(217,145,43,0.12)',
+              color: myAlert.severity === 'danger' ? 'var(--color-danger)' : '#9a6118',
+            }}
+          >
+            <AlertTriangle size={16} className="shrink-0" />
+            <span>{myAlert.message}</span>
+          </div>
+        )}
 
         {/* CTA: переход к тренировкам */}
         <button
@@ -80,77 +131,57 @@ export function ClientCardPage() {
           <ChevronRight size={18} className="shrink-0" />
         </button>
 
-        {/* Две вторичные CTA — календарь и чат по клиенту */}
+        {/* Сетка плиток-якорей: навигация и быстрый переход к секциям ниже */}
         <div className="grid grid-cols-2 gap-3">
-          <button
+          <ClientNavTile
+            Icon={CalendarDays}
+            title="Календарь"
+            sub="занятия клиента"
+            metric={calendarMetric}
+            metricTone={calendarMetricTone}
             onClick={() => navigate(`/trainer/calendar?clientId=${id}`)}
-            className="flex flex-col items-start gap-2 rounded-2xl bg-[var(--color-card)] p-4 text-left"
-          >
-            <span className="flex h-11 w-11 items-center justify-center rounded-full bg-[var(--color-chip)]">
-              <CalendarDays size={20} />
-            </span>
-            <span>
-              <span className="block text-[14px] font-bold leading-tight">Календарь</span>
-              <span className="block text-[11px] text-[var(--color-ink-muted)]">занятия клиента</span>
-            </span>
-          </button>
-          <button
+          />
+          <ClientNavTile
+            Icon={MessageSquare}
+            title="Написать"
+            sub="чат с клиентом"
+            metric={unread > 0 ? pad2num(unread) : undefined}
+            primary={unread > 0}
             onClick={() => navigate(`/trainer/chat/${id}`)}
-            className="flex flex-col items-start gap-2 rounded-2xl bg-[var(--color-card)] p-4 text-left"
-          >
-            <span className="flex h-11 w-11 items-center justify-center rounded-full bg-[var(--color-chip)]">
-              <MessageSquare size={20} />
-            </span>
-            <span>
-              <span className="block text-[14px] font-bold leading-tight">Написать</span>
-              <span className="block text-[11px] text-[var(--color-ink-muted)]">чат с клиентом</span>
-            </span>
-          </button>
+          />
+          <ClientNavTile
+            Icon={BarChart3}
+            title="Статистика"
+            sub="прогресс и история"
+            metric={statsMetric}
+            metricIcon={statsMetric ? TrendingUp : undefined}
+            onClick={() => navigate(`/trainer/clients/${id}/stats`)}
+          />
+          <ClientNavTile
+            Icon={Wallet}
+            title="Оплата"
+            sub="пакеты и расходы"
+            metric={
+              balance && balance.paid > 0 && balance.remaining > 0
+                ? `+${balance.remaining}`
+                : undefined
+            }
+            metricTone={balance && balance.remaining > 0 ? 'success' : undefined}
+            onClick={() => navigate(`/trainer/clients/${id}/payment`)}
+          />
+          <ClientNavTile
+            Icon={FileText}
+            title="Медкарта"
+            sub="файлы и заметки"
+            onClick={() => navigate(`/trainer/clients/${id}/medical`)}
+          />
+          <ClientNavTile
+            Icon={Pencil}
+            title="Профиль"
+            sub="контакты и данные"
+            onClick={() => navigate(`/trainer/clients/${id}/profile`)}
+          />
         </div>
-
-        {myAlert && (
-          <div
-            className="flex items-center gap-2 rounded-2xl px-3 py-2.5 text-[13px] font-medium"
-            style={{
-              background: myAlert.severity === 'danger' ? 'rgba(200,57,44,0.10)' : 'rgba(217,145,43,0.12)',
-              color: myAlert.severity === 'danger' ? 'var(--color-danger)' : '#9a6118',
-            }}
-          >
-            <AlertTriangle size={16} className="shrink-0" />
-            <span>{myAlert.message}</span>
-          </div>
-        )}
-
-        <Section title="Тренировки и оплата">
-          <BalanceCard clientId={id} />
-          <PackagesBlock clientId={id} />
-          <ExpenseBlock clientName={fullName(client.firstName, client.lastName)} />
-        </Section>
-
-        {contacts.length > 0 && (
-          <Section title="Связь">
-            <div className="overflow-hidden rounded-2xl">
-              {contacts.map((c, i) => (
-                <ContactLink key={c.kind} kind={c.kind} value={c.value} last={i === contacts.length - 1} />
-              ))}
-            </div>
-          </Section>
-        )}
-
-        <Section title="Персональные данные">
-          <div className="overflow-hidden rounded-2xl">
-            <Row
-              label="Дата рождения"
-              value={
-                client.birthDate
-                  ? `${formatBirth(client.birthDate)}${age !== null ? ` · ${age} лет` : ''}`
-                  : '—'
-              }
-            />
-            <Row label="Рост / вес" value={`${client.heightCm ?? '—'} см · ${client.weightKg ?? '—'} кг`} />
-            <Row label="ID клиента" value={client.accountId ?? '—'} last />
-          </div>
-        </Section>
 
         {client.notes && (
           <Section title="Заметки">
@@ -160,67 +191,136 @@ export function ClientCardPage() {
           </Section>
         )}
 
-        <Section title="Медкарта" indicator={!!client.medicalNotes}>
-          <div className="overflow-hidden rounded-2xl border border-[var(--color-line)] bg-[var(--color-card)]">
-            {client.medicalNotes ? (
-              <div className="border-b border-[var(--color-line)] p-4 text-[14px] leading-relaxed whitespace-pre-line">
-                {client.medicalNotes}
-              </div>
-            ) : null}
-            <div className="flex items-center gap-3 px-4 py-3 text-[12px] text-[var(--color-ink-muted)]">
-              <FileText size={14} className="shrink-0 opacity-60" />
-              <span className="flex-1">Файлы и заметки по дням</span>
-              <span className="rounded bg-[var(--color-accent)] px-1.5 py-0.5 font-[family-name:var(--font-mono)] text-[10px] font-bold uppercase tracking-wider text-[var(--color-accent-on)]">
-                СКОРО
-              </span>
-            </div>
-          </div>
-        </Section>
-
-        <StatsSection clientId={id} />
-
-        {/* D3 + D4: измерения объёмов и фотопрогресс — заглушки */}
-        <Section title="Прогресс тела">
-          <div className="grid grid-cols-2 gap-2">
-            <div className="rounded-2xl border border-[var(--color-line)] bg-[var(--color-card)] p-3">
-              <div className="font-[family-name:var(--font-mono)] text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--color-ink-mutedXL)]">
-                ОБЪЁМЫ
-              </div>
-              <div className="mt-1 text-[12px] text-[var(--color-ink-muted)]">
-                Вес, обхваты, % жира
-              </div>
-              <span className="mt-2 inline-block rounded bg-[var(--color-chip)] px-1.5 py-0.5 font-[family-name:var(--font-mono)] text-[9px] font-bold uppercase tracking-wider text-[var(--color-ink-muted)]">
-                СКОРО
-              </span>
-            </div>
-            <div className="rounded-2xl border border-[var(--color-line)] bg-[var(--color-card)] p-3">
-              <div className="font-[family-name:var(--font-mono)] text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--color-ink-mutedXL)]">
-                ФОТО
-              </div>
-              <div className="mt-1 text-[12px] text-[var(--color-ink-muted)]">
-                До / после
-              </div>
-              <span className="mt-2 inline-block rounded bg-[var(--color-chip)] px-1.5 py-0.5 font-[family-name:var(--font-mono)] text-[9px] font-bold uppercase tracking-wider text-[var(--color-ink-muted)]">
-                СКОРО
-              </span>
-            </div>
-          </div>
-        </Section>
-
-        <button
-          onClick={() => navigate(`/trainer/clients/${id}/edit`)}
-          className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[var(--color-card)] py-3.5 text-[14px] font-medium"
-        >
-          <Pencil size={16} /> Редактировать данные
-        </button>
       </div>
     </div>
   );
 }
 
-function Section({ title, children, indicator }: { title: string; children: React.ReactNode; indicator?: boolean }) {
+function scrollToSection(id: string) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function ClientNavTile({
+  Icon,
+  title,
+  sub,
+  onClick,
+  indicator,
+  metric,
+  metricTone,
+  metricIcon: MetricIcon,
+  stats,
+  primary,
+}: {
+  Icon: typeof CalendarDays;
+  title: string;
+  sub: string;
+  onClick: () => void;
+  indicator?: boolean;
+  metric?: string;
+  metricTone?: 'success' | 'danger';
+  metricIcon?: typeof CalendarDays;
+  stats?: Array<{ value: string; label: string; tone?: 'success' | 'danger' }>;
+  primary?: boolean;
+}) {
+  const metricColor =
+    metricTone === 'success'
+      ? 'var(--color-accent)'
+      : metricTone === 'danger'
+        ? 'var(--color-danger)'
+        : undefined;
+  const hasMetric = metric !== undefined;
+  const hasStats = stats && stats.length > 0;
   return (
-    <section className="space-y-2">
+    <button
+      onClick={onClick}
+      className={`relative flex flex-col items-start gap-2 rounded-2xl p-4 text-left active:scale-[0.98] transition-transform ${
+        primary
+          ? 'bg-[var(--color-accent)] text-[var(--color-accent-on)]'
+          : 'border border-[var(--color-line)] bg-[var(--color-card)]'
+      }`}
+    >
+      <div className="flex w-full items-start justify-between">
+        <span
+          className="flex h-11 w-11 items-center justify-center rounded-lg"
+          style={
+            primary
+              ? { background: 'rgba(11,12,16,0.12)' }
+              : { background: 'var(--color-card-elevated)', border: '1px solid var(--color-line)' }
+          }
+        >
+          <Icon size={20} strokeWidth={1.8} />
+        </span>
+        {hasStats && (
+          <div className="flex flex-col items-end gap-1 text-right">
+            {stats!.map((s, i) => (
+              <div key={i} className="flex items-baseline gap-1.5">
+                <span
+                  className="font-[family-name:var(--font-display)] text-[20px] leading-none tracking-[-0.02em] tabular-nums"
+                  style={{
+                    color:
+                      s.tone === 'success'
+                        ? 'var(--color-accent)'
+                        : s.tone === 'danger'
+                          ? 'var(--color-danger)'
+                          : undefined,
+                  }}
+                >
+                  {s.value}
+                </span>
+                <span className="font-[family-name:var(--font-mono)] text-[10px] uppercase tracking-[0.04em] text-[var(--color-ink-muted)]">
+                  {s.label}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+        {hasMetric && !hasStats && (
+          metric!.includes('/')
+            ? (() => {
+                const [base, accent] = metric!.split('/');
+                return (
+                  <span className="flex items-center gap-1.5 font-[family-name:var(--font-display)] text-[28px] leading-none tracking-[-0.02em] tabular-nums">
+                    <span>{base}</span>
+                    <span className="opacity-40">/</span>
+                    <span style={metricColor ? { color: metricColor } : undefined}>{accent}</span>
+                    {MetricIcon && <MetricIcon size={24} strokeWidth={1.8} style={{ color: 'var(--color-accent)' }} />}
+                  </span>
+                );
+              })()
+            : (
+              <span className="flex items-center gap-1.5">
+                <span
+                  className="font-[family-name:var(--font-display)] text-[28px] leading-none tracking-[-0.02em] tabular-nums"
+                  style={metricColor ? { color: metricColor } : undefined}
+                >
+                  {metric}
+                </span>
+                {MetricIcon && <MetricIcon size={24} strokeWidth={1.8} style={{ color: 'var(--color-accent)' }} />}
+              </span>
+            )
+        )}
+      </div>
+      {indicator && (
+        <span className="absolute right-3 top-3 h-2 w-2 rounded-full bg-[var(--color-danger)]" />
+      )}
+      <span>
+        <span className="block text-[14px] font-bold leading-tight">{title}</span>
+        <span className="block text-[11px] text-[var(--color-ink-muted)]">{sub}</span>
+      </span>
+    </button>
+  );
+}
+
+function pad2num(n: number) {
+  return n < 10 ? `0${n}` : `${n}`;
+}
+
+export function Section({ id, title, children, indicator }: { id?: string; title: string; children: React.ReactNode; indicator?: boolean }) {
+  return (
+    <section id={id} className="space-y-2 scroll-mt-4">
       <h3 className="flex items-center gap-1.5 px-1 text-[11px] font-semibold uppercase tracking-wider text-[var(--color-ink-muted)]">
         {indicator && <span className="h-1.5 w-1.5 rounded-full bg-[var(--color-danger)]" />}
         {title}
@@ -230,7 +330,7 @@ function Section({ title, children, indicator }: { title: string; children: Reac
   );
 }
 
-function Row({ label, value, last }: { label: string; value: string; last?: boolean }) {
+export function Row({ label, value, last }: { label: string; value: string; last?: boolean }) {
   return (
     <div
       className={`flex items-baseline justify-between gap-3 bg-[var(--color-card)] px-4 py-3 ${
@@ -245,7 +345,7 @@ function Row({ label, value, last }: { label: string; value: string; last?: bool
 
 // ─── Баланс тренировок ──────────────────────────────────────────────────────
 
-function BalanceCard({ clientId }: { clientId: string }) {
+export function BalanceCard({ clientId }: { clientId: string }) {
   const { data: balance } = useClientBalance(clientId);
   if (!balance) {
     return (
@@ -285,7 +385,7 @@ function BalanceCard({ clientId }: { clientId: string }) {
 
 // ─── Пакеты ─────────────────────────────────────────────────────────────────
 
-function PackagesBlock({ clientId }: { clientId: string }) {
+export function PackagesBlock({ clientId }: { clientId: string }) {
   const { data: packages = [] } = useClientPackages(clientId);
   const deleteMut = useDeletePackage(clientId);
   const confirm = useConfirm();
@@ -326,7 +426,7 @@ function PackagesBlock({ clientId }: { clientId: string }) {
 
 const EXPENSE_CATEGORIES = ['Аренда', 'Инвентарь', 'Обучение', 'Фарма', 'Прочее'];
 
-function ExpenseBlock({ clientName }: { clientName: string }) {
+export function ExpenseBlock({ clientName }: { clientName: string }) {
   const [adding, setAdding] = useState(false);
   return adding ? (
     <ExpenseForm clientName={clientName} onClose={() => setAdding(false)} />
@@ -533,7 +633,7 @@ function PackageForm({ clientId, onClose }: { clientId: string; onClose: () => v
 
 // ─── Статистика ─────────────────────────────────────────────────────────────
 
-function StatsSection({ clientId }: { clientId: string }) {
+export function StatsSection({ clientId }: { clientId: string }) {
   const [open, setOpen] = useState(false);
   return (
     <section className="space-y-2">

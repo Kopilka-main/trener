@@ -78,7 +78,7 @@ alertsRouter.get(
           clientId: r.id,
           clientName,
           remaining,
-          message: 'Оплачены тренировки, но на ближайшую неделю ничего не назначено',
+          message: `На следующую неделю не запланировано, хотя оплачено ${remaining} ${plural(remaining, 'тренировка', 'тренировки', 'тренировок')}`,
         });
       }
     }

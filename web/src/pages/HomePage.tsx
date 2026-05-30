@@ -125,6 +125,7 @@ export function HomePage() {
     onClick: () => void;
     metricColor?: string;
     kicker?: string;
+    phaseOffsetMs?: number;
   }> = [
     {
       key: 'clients',
@@ -144,6 +145,7 @@ export function HomePage() {
       ],
       Icon: CalendarDays,
       onClick: () => navigate('/trainer/calendar'),
+      phaseOffsetMs: 0,
     },
     {
       key: 'chat',
@@ -171,6 +173,7 @@ export function HomePage() {
         { v: fmtThousands(profitY), s: ['тыс', 'за', '12 мес'] },
       ],
       metricColor: profitColor,
+      phaseOffsetMs: 5000,
       Icon: Wallet,
       onClick: () => navigate('/trainer/accounting'),
     },
@@ -266,7 +269,7 @@ export function HomePage() {
                 key={key}
                 {...rest}
                 isPrimary={primaryKey === key}
-                phaseOffsetMs={i * 1700}
+                phaseOffsetMs={rest.phaseOffsetMs ?? 0}
               />
             );
           })}
@@ -404,7 +407,7 @@ function Tile({ title, sub, metrics, Icon, onClick, isPrimary, metricColor, kick
     let intervalId: number | undefined;
     const startId = window.setTimeout(() => {
       setIdx((x) => (x + 1) % metrics.length);
-      intervalId = window.setInterval(() => setIdx((x) => (x + 1) % metrics.length), 5200);
+      intervalId = window.setInterval(() => setIdx((x) => (x + 1) % metrics.length), 10000);
     }, Math.max(0, phaseOffsetMs));
     return () => {
       window.clearTimeout(startId);
