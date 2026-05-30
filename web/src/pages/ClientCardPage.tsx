@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { AlertTriangle, BarChart3, CalendarDays, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Dumbbell, FileText, MessageSquare, Pencil, Plus, TrendingUp, Trophy, Wallet, X } from 'lucide-react';
+import { AlertTriangle, BarChart3, CalendarDays, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Dumbbell, FileText, Link2, Link2Off, MessageSquare, Pencil, Plus, TrendingUp, Trophy, Wallet, X } from 'lucide-react';
 import { ScreenHeader } from '../components/ScreenHeader';
 import { Avatar } from '../components/Avatar';
 import { Field, TextArea, TextInput } from '../components/Field';
@@ -10,6 +10,7 @@ import { useClientWorkouts } from '../api/client-workouts';
 import { useSessions } from '../api/sessions';
 import { useChatUnread } from '../api/chat';
 import { useClientPackages, useCreatePackage, useDeletePackage } from '../api/packages';
+import { useCreateIncomeRecord } from '../api/incomes';
 import { useCreateExpense } from '../api/expenses';
 import { useTrainerAlerts } from '../api/alerts';
 import { useClientStats, type ClientStats } from '../api/client-stats';
@@ -83,7 +84,7 @@ export function ClientCardPage() {
         <div className="rounded-3xl bg-[var(--color-card)] p-4 space-y-3">
           <div className="flex items-center gap-3">
             <Avatar firstName={client.firstName} lastName={client.lastName} size={64} />
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <div className="text-[19px] font-bold leading-tight">
                 {fullName(client.firstName, client.lastName)}
               </div>
@@ -91,6 +92,7 @@ export function ClientCardPage() {
                 <div className="mt-0.5 text-[13px] text-[var(--color-ink-muted)]">{age} лет</div>
               )}
             </div>
+            <ConnectionBadge connected={!!client.accountId} />
           </div>
           {tags.length > 0 && (
             <div className="flex flex-wrap gap-1.5">
@@ -318,6 +320,25 @@ function pad2num(n: number) {
   return n < 10 ? `0${n}` : `${n}`;
 }
 
+// Значок «соединения» с клиентом в шапке карточки:
+//  • есть accountId — целая цепь, лайм (клиент подключён к приложению)
+//  • нет accountId  — разорванная цепь, серая (клиент не привязан)
+function ConnectionBadge({ connected }: { connected: boolean }) {
+  const Icon = connected ? Link2 : Link2Off;
+  const color = connected ? 'var(--color-accent)' : 'var(--color-ink-mutedXL)';
+  const bg = connected ? 'rgba(212,255,61,0.14)' : 'var(--color-chip)';
+  return (
+    <span
+      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
+      style={{ background: bg }}
+      title={connected ? 'Клиент подключён' : 'Нет соединения с клиентом'}
+      aria-label={connected ? 'Клиент подключён' : 'Нет соединения с клиентом'}
+    >
+      <Icon size={15} strokeWidth={2.2} style={{ color }} />
+    </span>
+  );
+}
+
 export function Section({ id, title, children, indicator }: { id?: string; title: string; children: React.ReactNode; indicator?: boolean }) {
   return (
     <section id={id} className="space-y-2 scroll-mt-4">
@@ -411,17 +432,228 @@ export function PackagesBlock({ clientId }: { clientId: string }) {
         </ul>
       )}
       {adding ? (
-        <PackageForm clientId={clientId} onClose={() => setAdding(false)} />
+        <IncomeForm clientId={clientId} onClose={() => setAdding(false)} />
       ) : (
         <button
           onClick={() => setAdding(true)}
           className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-[var(--color-line)] py-3 text-[13px] font-medium text-[var(--color-ink-muted)]"
         >
-          <Plus size={15} /> Добавить пакет
+          <Plus size={15} /> Добавить доход
         </button>
       )}
     </div>
   );
+}
+
+// Универсальная форма дохода от клиента: выбирается тип, под него
+// разные поля. Для пакета тренировок — POST /api/clients/:id/packages,
+// для всего остального — POST /api/incomes с заметкой про клиента.
+type IncomeKind = 'package' | 'online' | 'inventory' | 'pharma' | 'other';
+
+function IncomeForm({ clientId, onClose }: { clientId: string; onClose: () => void }) {
+  const createPackage = useCreatePackage(clientId);
+  const createIncome = useCreateIncomeRecord();
+  const [kind, setKind] = useState<IncomeKind>('package');
+
+  return (
+    <div className="rounded-2xl bg-[var(--color-card)] p-4 space-y-3">
+      <div className="flex items-center justify-between">
+        <h4 className="text-[14px] font-semibold">Новый доход</h4>
+        <button onClick={onClose} className="text-[12px] text-[var(--color-ink-muted)]">Отмена</button>
+      </div>
+
+      <div className="flex flex-wrap gap-1.5">
+        <KindChip active={kind === 'package'} onClick={() => setKind('package')}>Пакет тренировок</KindChip>
+        <KindChip active={kind === 'online'} onClick={() => setKind('online')}>Онлайн сопровождение</KindChip>
+        <KindChip active={kind === 'inventory'} onClick={() => setKind('inventory')}>Инвентарь</KindChip>
+        <KindChip active={kind === 'pharma'} onClick={() => setKind('pharma')}>Фарма</KindChip>
+        <KindChip active={kind === 'other'} onClick={() => setKind('other')}>Прочее</KindChip>
+      </div>
+
+      {kind === 'package' && (
+        <PackageFields onSubmit={(input) => createPackage.mutateAsync(input).then(onClose)} pending={createPackage.isPending} />
+      )}
+      {kind === 'online' && (
+        <OnlinePeriodFields
+          onSubmit={async (amount, from, to) => {
+            await createIncome.mutateAsync({
+              category: 'Онлайн сопровождение',
+              amount,
+              date: from,
+              note: `Онлайн ${formatRuShort(from)}–${formatRuShort(to)}`,
+            });
+            onClose();
+          }}
+          pending={createIncome.isPending}
+        />
+      )}
+      {(kind === 'inventory' || kind === 'pharma' || kind === 'other') && (
+        <SimpleIncomeFields
+          category={kind === 'inventory' ? 'Инвентарь' : kind === 'pharma' ? 'Фарма' : 'Прочее'}
+          onSubmit={async (amount, date, note) => {
+            await createIncome.mutateAsync({
+              category: kind === 'inventory' ? 'Инвентарь' : kind === 'pharma' ? 'Фарма' : 'Прочее',
+              amount,
+              date,
+              note: note || null,
+            });
+            onClose();
+          }}
+          pending={createIncome.isPending}
+        />
+      )}
+    </div>
+  );
+}
+
+function KindChip({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="rounded-full px-3 py-1.5 text-[12px] font-semibold transition"
+      style={{
+        background: active ? 'var(--color-accent)' : 'var(--color-chip)',
+        color: active ? 'var(--color-accent-on)' : 'var(--color-ink-muted)',
+      }}
+    >
+      {children}
+    </button>
+  );
+}
+
+function PackageFields({ onSubmit, pending }: { onSubmit: (input: PaymentPackageInput) => Promise<unknown>; pending: boolean }) {
+  const [lessons, setLessons] = useState('20');
+  const [price, setPrice] = useState('2000');
+  const [startsAt, setStartsAt] = useState(() => new Date().toISOString().slice(0, 10));
+  const [workoutType, setWorkoutType] = useState('');
+  const [note, setNote] = useState('');
+  const lessonsNum = Number(lessons);
+  const priceNum = Number(price);
+  const total = Number.isFinite(lessonsNum) && Number.isFinite(priceNum) ? lessonsNum * priceNum : 0;
+
+  const submit = () => {
+    if (!Number.isFinite(lessonsNum) || lessonsNum <= 0) return alert('Укажите число тренировок');
+    if (!Number.isFinite(priceNum) || priceNum < 0) return alert('Укажите цену');
+    if (!startsAt) return alert('Укажите дату начала');
+    onSubmit({
+      lessonsPaid: Math.round(lessonsNum),
+      pricePerLesson: priceNum,
+      totalPaid: total,
+      startsAt,
+      workoutType: workoutType.trim() || null,
+      note: note.trim() || null,
+    });
+  };
+  return (
+    <>
+      <div className="grid grid-cols-2 gap-3">
+        <Field label="Тренировок">
+          <TextInput inputMode="numeric" value={lessons} onChange={(e) => setLessons(e.target.value)} />
+        </Field>
+        <Field label="₽ за тренировку">
+          <TextInput inputMode="decimal" value={price} onChange={(e) => setPrice(e.target.value)} />
+        </Field>
+      </div>
+      <Field label="Дата начала">
+        <input type="date" value={startsAt} onChange={(e) => setStartsAt(e.target.value)} className={dateInputCls} />
+      </Field>
+      <Field label="Тип (необязательно)">
+        <TextInput placeholder="Силовая, Йога…" value={workoutType} onChange={(e) => setWorkoutType(e.target.value)} />
+      </Field>
+      <Field label="Заметка">
+        <TextArea rows={2} value={note} onChange={(e) => setNote(e.target.value)} />
+      </Field>
+      <div className="rounded-xl bg-[var(--color-chip)] px-3 py-2 text-[12px] text-center">
+        Итого пакет: <span className="font-bold tabular-nums">{formatMoney(total)}</span>
+      </div>
+      <SaveBtn onClick={submit} pending={pending} label="Сохранить пакет" />
+    </>
+  );
+}
+
+function OnlinePeriodFields({
+  onSubmit, pending,
+}: { onSubmit: (amount: number, from: string, to: string) => Promise<unknown>; pending: boolean }) {
+  const today = new Date().toISOString().slice(0, 10);
+  const monthAhead = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10);
+  const [from, setFrom] = useState(today);
+  const [to, setTo] = useState(monthAhead);
+  const [amount, setAmount] = useState('');
+  const amountNum = Number(amount);
+
+  const submit = () => {
+    if (!Number.isFinite(amountNum) || amountNum <= 0) return alert('Укажите сумму');
+    if (!from || !to) return alert('Укажите период');
+    if (to < from) return alert('Дата окончания раньше начала');
+    onSubmit(amountNum, from, to);
+  };
+
+  return (
+    <>
+      <div className="grid grid-cols-2 gap-3">
+        <Field label="С">
+          <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className={dateInputCls} />
+        </Field>
+        <Field label="По">
+          <input type="date" value={to} onChange={(e) => setTo(e.target.value)} className={dateInputCls} />
+        </Field>
+      </div>
+      <Field label="Сумма, ₽">
+        <TextInput inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} />
+      </Field>
+      <SaveBtn onClick={submit} pending={pending} label="Сохранить" />
+    </>
+  );
+}
+
+function SimpleIncomeFields({
+  category, onSubmit, pending,
+}: { category: string; onSubmit: (amount: number, date: string, note: string) => Promise<unknown>; pending: boolean }) {
+  const [amount, setAmount] = useState('');
+  const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [note, setNote] = useState('');
+  const amountNum = Number(amount);
+
+  const submit = () => {
+    if (!Number.isFinite(amountNum) || amountNum <= 0) return alert('Укажите сумму');
+    if (!date) return alert('Укажите дату');
+    onSubmit(amountNum, date, note.trim());
+  };
+  return (
+    <>
+      <Field label={`${category} — сумма, ₽`}>
+        <TextInput inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} />
+      </Field>
+      <Field label="Дата">
+        <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className={dateInputCls} />
+      </Field>
+      <Field label="Заметка">
+        <TextArea rows={2} value={note} onChange={(e) => setNote(e.target.value)} />
+      </Field>
+      <SaveBtn onClick={submit} pending={pending} label="Сохранить" />
+    </>
+  );
+}
+
+const dateInputCls =
+  'w-full rounded-2xl bg-[var(--color-chip)] px-4 py-3 text-[15px] outline-none focus:ring-2 focus:ring-ink/10';
+
+function SaveBtn({ onClick, pending, label }: { onClick: () => void; pending: boolean; label: string }) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={pending}
+      className="w-full rounded-2xl bg-[var(--color-accent)] py-3 text-[14px] font-semibold text-[var(--color-accent-on)] disabled:opacity-50"
+    >
+      {pending ? 'Сохранение…' : label}
+    </button>
+  );
+}
+
+function formatRuShort(iso: string): string {
+  const [y, m, d] = iso.split('-').map(Number);
+  return `${String(d).padStart(2, '0')}.${String(m).padStart(2, '0')}.${String(y).slice(2)}`;
 }
 
 const EXPENSE_CATEGORIES = ['Аренда', 'Инвентарь', 'Обучение', 'Фарма', 'Прочее'];

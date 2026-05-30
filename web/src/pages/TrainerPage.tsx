@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Bell, ChevronRight, Instagram, LogOut, Mail, Pencil, Phone, Send, Settings, Share2 } from 'lucide-react';
+import { Bell, ChevronRight, Instagram, LogOut, Mail, Pencil, Phone, Plus, Send, Settings, Share2, Trash2 } from 'lucide-react';
 import { ThemeToggle } from '../components/ThemeToggle';
 import { ScreenHeader } from '../components/ScreenHeader';
 import { Avatar } from '../components/Avatar';
 import { useConfirm } from '../components/ConfirmProvider';
 import { useTrainer } from '../api/trainer';
+import { useCreateGym, useDeleteGym, useGyms } from '../api/gyms';
 import { appBase } from '../lib/routes';
 import { fullName } from '../lib/initials';
 
@@ -62,6 +63,8 @@ export function TrainerPage() {
             <div className="rounded-2xl bg-[var(--color-card)] p-3 text-[13px] leading-relaxed">{trainer.bio}</div>
           </Section>
         )}
+
+        <GymsSection />
 
         {contacts.length > 0 && (
           <Section title="Контакты">
@@ -137,6 +140,70 @@ export function TrainerPage() {
         </button>
       </div>
     </div>
+  );
+}
+
+function GymsSection() {
+  const { data: gyms = [] } = useGyms();
+  const create = useCreateGym();
+  const remove = useDeleteGym();
+  const [adding, setAdding] = useState(false);
+  const [name, setName] = useState('');
+
+  const add = async () => {
+    const value = name.trim();
+    if (!value) return;
+    await create.mutateAsync({ name: value, monthlyRent: null, note: null });
+    setName('');
+    setAdding(false);
+  };
+
+  return (
+    <Section title="Залы">
+      <div className="overflow-hidden rounded-2xl bg-[var(--color-card)] divide-y divide-[var(--color-line)]">
+        {gyms.map((g) => (
+          <div key={g.id} className="flex items-center gap-2 px-4 py-3 text-[14px]">
+            <span className="min-w-0 flex-1 truncate">{g.name}</span>
+            <button
+              onClick={() => remove.mutate(g.id)}
+              className="rounded-md p-1.5 text-[var(--color-ink-muted)]"
+              aria-label="Удалить"
+            >
+              <Trash2 size={14} />
+            </button>
+          </div>
+        ))}
+        {adding ? (
+          <div className="flex items-center gap-2 px-4 py-3">
+            <input
+              autoFocus
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') add();
+                if (e.key === 'Escape') { setName(''); setAdding(false); }
+              }}
+              placeholder="Алекс Фитнес, СССР, World Class…"
+              className="flex-1 bg-transparent text-[14px] focus:outline-none"
+            />
+            <button
+              onClick={add}
+              disabled={!name.trim()}
+              className="rounded-full bg-[var(--color-accent)] px-3 py-1 text-[12px] font-semibold text-[var(--color-accent-on)] disabled:opacity-40"
+            >
+              Готово
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={() => setAdding(true)}
+            className="flex w-full items-center gap-2 px-4 py-3 text-left text-[14px] font-medium text-[var(--color-ink-muted)]"
+          >
+            <Plus size={14} /> Добавить зал
+          </button>
+        )}
+      </div>
+    </Section>
   );
 }
 

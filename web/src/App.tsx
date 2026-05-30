@@ -6,6 +6,8 @@ import { ClientEditPage } from './pages/ClientEditPage';
 import { ClientWorkoutsPage } from './pages/ClientWorkoutsPage';
 import { ClientCardPage } from './pages/ClientCardPage';
 import { ClientStatsPage } from './pages/ClientStatsPage';
+import { ExerciseStatPage } from './pages/ExerciseStatPage';
+import { MeasurementsAnalyticsPage } from './pages/MeasurementsAnalyticsPage';
 import { ClientPaymentPage } from './pages/ClientPaymentPage';
 import { ClientMedicalPage } from './pages/ClientMedicalPage';
 import { ClientProfileDetailsPage } from './pages/ClientProfileDetailsPage';
@@ -91,6 +93,8 @@ export function App() {
             <Route path={`${TRAINER_BASE}/clients/new`} element={<ClientEditPage mode="create" />} />
             <Route path={`${TRAINER_BASE}/clients/:id`} element={<ClientCardPage />} />
             <Route path={`${TRAINER_BASE}/clients/:id/stats`} element={<ClientStatsPage />} />
+            <Route path={`${TRAINER_BASE}/clients/:id/stats/exercises/:exId`} element={<ExerciseStatPage />} />
+            <Route path={`${TRAINER_BASE}/clients/:id/stats/measurements`} element={<MeasurementsAnalyticsPage />} />
             <Route path={`${TRAINER_BASE}/clients/:id/payment`} element={<ClientPaymentPage />} />
             <Route path={`${TRAINER_BASE}/clients/:id/medical`} element={<ClientMedicalPage />} />
             <Route path={`${TRAINER_BASE}/clients/:id/profile`} element={<ClientProfileDetailsPage />} />

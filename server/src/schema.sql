@@ -115,6 +115,7 @@ CREATE TABLE IF NOT EXISTS sessions (
   status TEXT NOT NULL DEFAULT 'planned' CHECK (status IN ('planned', 'completed', 'cancelled')),
   approval TEXT NOT NULL DEFAULT 'none' CHECK (approval IN ('none', 'pending', 'approved')),
   delivered_at TEXT,                                  -- когда клиент получил уведомление о занятии
+  is_online INTEGER NOT NULL DEFAULT 0,               -- 1 = онлайн-тренировка (без статуса «согласовано»)
   note TEXT,
   created_at TEXT NOT NULL
 );
@@ -189,6 +190,43 @@ CREATE TABLE IF NOT EXISTS messages (
 );
 CREATE INDEX IF NOT EXISTS idx_messages_conv ON messages(conversation_id, created_at);
 
+-- Замеры тела клиента (вес, % жира/мышц/воды, обхваты). Один замер на дату/клиента.
+CREATE TABLE IF NOT EXISTS measurements (
+  id TEXT PRIMARY KEY,
+  client_id TEXT NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+  date TEXT NOT NULL,                     -- YYYY-MM-DD
+  weight_kg REAL,
+  body_fat_pct REAL,
+  muscle_pct REAL,
+  water_pct REAL,
+  chest_cm REAL,
+  shoulders_cm REAL,
+  waist_cm REAL,
+  hips_cm REAL,
+  biceps_l_cm REAL,
+  biceps_r_cm REAL,
+  thigh_l_cm REAL,
+  thigh_r_cm REAL,
+  calf_l_cm REAL,
+  calf_r_cm REAL,
+  neck_cm REAL,
+  note TEXT,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_measurements_client ON measurements(client_id, date);
+
+-- Фотографии прогресса. По одной записи на ракурс/дату/клиента.
+CREATE TABLE IF NOT EXISTS progress_photos (
+  id TEXT PRIMARY KEY,
+  client_id TEXT NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+  date TEXT NOT NULL,                     -- YYYY-MM-DD
+  angle TEXT NOT NULL,                    -- front | side | back
+  file_path TEXT NOT NULL,                -- относительный путь в uploads/
+  note TEXT,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_progress_photos_client ON progress_photos(client_id, date);
+
 -- Профиль тренера (одна запись на приложение).
 CREATE TABLE IF NOT EXISTS trainer (
   id TEXT PRIMARY KEY,
@@ -202,5 +240,6 @@ CREATE TABLE IF NOT EXISTS trainer (
   email TEXT,
   telegram TEXT,
   instagram TEXT,
-  share_code TEXT
+  share_code TEXT,
+  works_online INTEGER NOT NULL DEFAULT 1
 );

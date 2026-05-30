@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Check, CheckCheck, ChevronLeft, ChevronRight, CircleDashed, Plus } from 'lucide-react';
+import { Check, CheckCheck, ChevronDown, ChevronLeft, ChevronRight, CircleDashed, Plus } from 'lucide-react';
 import { ScreenHeader } from '../components/ScreenHeader';
 import { BottomSheet } from '../components/BottomSheet';
 import { useConfirm } from '../components/ConfirmProvider';
@@ -8,6 +8,8 @@ import { useSessions, useCreateSession, useUpdateSession, useDeleteSession, useS
 import { useClient, useClients } from '../api/clients';
 import { useClientWorkouts } from '../api/client-workouts';
 import { useWorkoutTemplates } from '../api/workout-templates';
+import { useGyms } from '../api/gyms';
+import { useTrainer } from '../api/trainer';
 import { Field, TextInput } from '../components/Field';
 import { fullName } from '../lib/initials';
 import { formatDate } from '../lib/format';
@@ -113,10 +115,13 @@ export function CalendarPage() {
 
   const showForm = creating || editing !== null || createAt !== null;
 
-  const closeForm = () => {
+  const closeForm = (saved?: boolean) => {
     setEditing(null);
     setCreating(false);
     setCreateAt(null);
+    // После сохранения занятия возвращаем тренера в месячный обзор —
+    // обычно дальше хочется видеть всю сетку, а не один день.
+    if (saved) setView('month');
   };
 
   return (
@@ -298,6 +303,22 @@ function ApprovalBadge({ session, size = 14 }: { session: Session; size?: number
   return <CheckCheck size={size} className="shrink-0" style={{ color: APPROVED_BLUE }} aria-label="Согласовано клиентом" />;
 }
 
+// Иконка статуса для плитки в календаре: цвет наследует от фона плитки.
+//   • online plate    — белая иконка
+//   • approved offline — тёмная иконка на лайме
+//   • остальные        — тёмная иконка на белой/кремовой
+function SessionStatusIcon({ session, size, approved }: { session: Session; size: number; approved: boolean }) {
+  const stage = approvalStage(session);
+  const Icon =
+    stage === 'none' ? CircleDashed
+      : stage === 'sent' ? Check
+      : CheckCheck;
+  const color = session.isOnline
+    ? '#ffffff'
+    : (approved ? 'var(--color-accent-on)' : 'var(--color-bg)');
+  return <Icon size={size} strokeWidth={2.4} style={{ color }} className="shrink-0" />;
+}
+
 // Статус согласования в форме занятия — не степпер, а индикатор.
 // Тренер сам ничего не выставляет: статус продвигается автоматически
 // (есть accountId у клиента → отправлено; клиент опросил → получено;
@@ -390,6 +411,24 @@ function paymentBorder(isPaid: boolean) {
   return isPaid ? PAID_BORDER : UNPAID_BORDER;
 }
 
+// Цвета занятия по статусу согласования:
+//  • approved (offline) — акцентный лайм (подтверждено клиентом)
+//  • online            — целиком синяя плитка
+//  • остальные offline — нейтральная белая/кремовая плитка
+const ONLINE_BLUE = '#2f6fed';
+function sessionTileBg(session: Session) {
+  if (session.isOnline) return ONLINE_BLUE;
+  return session.approval === 'approved' ? 'var(--color-accent)' : 'var(--color-ink)';
+}
+function sessionTileFg(session: Session) {
+  if (session.isOnline) return '#ffffff';
+  return session.approval === 'approved' ? 'var(--color-accent-on)' : 'var(--color-bg)';
+}
+function sessionTileBorder(session: Session) {
+  if (session.isOnline) return ONLINE_BLUE;
+  return session.approval === 'approved' ? 'var(--color-accent)' : 'rgba(0,0,0,0.06)';
+}
+
 // «10:00» + 45 мин → «10:45»; помогает в подписях занятий «начало-конец».
 function endTime(startTime: string, durationMin: number): string {
   const [h, m] = startTime.split(':').map(Number);
@@ -454,9 +493,12 @@ function DayView({
           </div>
         )}
         {items.map((s) => {
-          const top = (timeToMin(s.startTime) - CAL_START_HOUR * 60) / 60 * HOUR_H;
-          const height = Math.max((s.durationMin / 60) * HOUR_H - 4, 36);
-          const isPaid = paidMap[s.id] === true;
+          const startMin = Math.round(timeToMin(s.startTime) / 15) * 15;
+          const durMin = Math.round(s.durationMin / 15) * 15;
+          const top = (startMin - CAL_START_HOUR * 60) / 60 * HOUR_H;
+          const height = (durMin / 60) * HOUR_H - 2;
+          const approved = s.approval === 'approved';
+          const subColor = approved ? 'rgba(11,12,16,0.6)' : 'rgba(11,12,16,0.55)';
           return (
             <button
               key={s.id}
@@ -465,21 +507,19 @@ function DayView({
               style={{
                 top,
                 height,
-                background: paymentBg(isPaid),
-                borderColor: paymentBorder(isPaid),
-                opacity: s.status === 'completed' ? 0.5 : 1,
+                background: sessionTileBg(s),
+                borderColor: sessionTileBorder(s),
+                color: sessionTileFg(s),
+                opacity: s.status === 'completed' ? 0.6 : 1,
               }}
             >
               <div className="flex items-center gap-1.5">
-                <span className="shrink-0 text-[12px] font-bold tabular-nums">
-                  {s.startTime}–{endTime(s.startTime, s.durationMin)}
-                </span>
+                <SessionStatusIcon session={s} size={14} approved={approved} />
                 <span className="min-w-0 flex-1 truncate text-[12px] font-semibold">
                   {fullName(s.clientFirstName, s.clientLastName)}
                 </span>
-                <ApprovalBadge session={s} />
               </div>
-              <div className="truncate text-[11px] text-[var(--color-ink-muted)]">
+              <div className="truncate text-[11px]" style={{ color: subColor }}>
                 {[s.title, s.location].filter(Boolean).join(' · ')}
               </div>
             </button>
@@ -515,12 +555,14 @@ function WeekView({
 
   return (
     <div className="px-2 pt-2">
-      <div className="flex">
+      <div
+        className="sticky top-0 z-20 flex border-b border-[var(--color-line)] bg-[var(--color-bg)] pb-1.5 pt-1"
+      >
         <div className="w-7 shrink-0" />
         {dates.map((d) => {
           const today = sameDay(d, now);
           return (
-            <button key={toISODate(d)} onClick={() => onPickDay(d)} className="flex-1 pb-1.5 text-center">
+            <button key={toISODate(d)} onClick={() => onPickDay(d)} className="flex-1 text-center">
               <div className="text-[10px] text-[var(--color-ink-muted)]">{DAY_SHORT[weekdayMon(d)]}</div>
               <div
                 className={`mx-auto mt-0.5 flex h-6 w-6 items-center justify-center rounded-full text-[12px] font-bold tabular-nums ${today ? 'bg-[var(--color-accent)] text-[var(--color-accent-on)]' : ''}`}
@@ -583,28 +625,27 @@ function WeekView({
                   />
                 ))}
                 {items.map((s) => {
-                  const top = (timeToMin(s.startTime) - CAL_START_HOUR * 60) / 60 * HOUR_H;
-                  const height = Math.max((s.durationMin / 60) * HOUR_H - 2, 24);
-                  const isPaid = paidMap[s.id] === true;
+                  // Плитка занимает точный промежуток времени с округлением до 15 мин.
+                  const startMin = Math.round(timeToMin(s.startTime) / 15) * 15;
+                  const durMin = Math.round(s.durationMin / 15) * 15;
+                  const top = (startMin - CAL_START_HOUR * 60) / 60 * HOUR_H;
+                  const height = (durMin / 60) * HOUR_H - 1;
+                  const approved = s.approval === 'approved';
                   return (
                     <button
                       key={s.id}
                       onClick={() => onPick(s)}
-                      className="absolute inset-x-[2px] z-10 overflow-hidden rounded-md border px-1 py-0.5 text-left"
+                      className="absolute inset-x-[1px] z-10 flex items-center justify-center overflow-hidden rounded-md border text-left"
                       style={{
                         top,
                         height,
-                        background: paymentBg(isPaid),
-                        borderColor: paymentBorder(isPaid),
-                        opacity: s.status === 'completed' ? 0.5 : 1,
+                        background: sessionTileBg(s),
+                        borderColor: sessionTileBorder(s),
+                        color: sessionTileFg(s),
+                        opacity: s.status === 'completed' ? 0.6 : 1,
                       }}
                     >
-                      <div className="flex items-center gap-0.5">
-                        <span className="min-w-0 flex-1 truncate text-[9px] font-bold leading-tight tabular-nums">
-                          {s.startTime}–{endTime(s.startTime, s.durationMin)}
-                        </span>
-                        <ApprovalBadge session={s} size={10} />
-                      </div>
+                      <SessionStatusIcon session={s} size={height < 18 ? 10 : 14} approved={approved} />
                     </button>
                   );
                 })}
@@ -614,6 +655,45 @@ function WeekView({
         </div>
       </div>
     </div>
+  );
+}
+
+// Иконка статуса в ячейке месячного календаря, когда выбран конкретный
+// клиент. С `onTile` — ячейка-плитка (лайм/бежевая) и иконка тёмная.
+//   • online → синий кружок с белой иконкой внутри (как в недельной плитке)
+//   • offline → CircleDashed / Check / CheckCheck тёмным цветом
+function DayStatusIcon({ session, onTile }: { session: Session; onTile?: boolean }) {
+  const stage = approvalStage(session);
+  const Icon = stage === 'none' ? CircleDashed : stage === 'sent' ? Check : CheckCheck;
+  // Online — иконка белая (плитка полностью синяя в sessionTileBg).
+  if (session.isOnline) {
+    return <Icon size={14} strokeWidth={2.4} style={{ color: '#ffffff' }} />;
+  }
+  const color = onTile
+    ? (stage === 'approved' ? 'var(--color-accent-on)' : 'var(--color-bg)')
+    : (stage === 'approved' ? 'var(--color-accent)' : 'var(--color-ink-muted)');
+  return <Icon size={14} strokeWidth={2.2} style={{ color }} />;
+}
+
+// Бейдж-счётчик на ячейке месяца: только оффлайн-тренировки.
+//   offApproved (лайм) / offPending (белый), разделитель «/» серый.
+// Онлайн-тренировки в счётчике не отображаются — у них своя визуализация
+// в плитке/иконке статуса.
+function DayCountsBadge({ counts }: {
+  counts: { offApproved: number; offPending: number; onlineDone: number; onlineWait: number };
+}) {
+  const { offApproved, offPending } = counts;
+  if (offApproved === 0 && offPending === 0) return null;
+  return (
+    <span className="font-[family-name:var(--font-mono)] text-[10px] font-bold leading-none tabular-nums">
+      <span style={{ color: 'var(--color-accent)' }}>{offApproved}</span>
+      {offPending > 0 && (
+        <>
+          <span className="text-[var(--color-ink-mutedXL)]">/</span>
+          <span style={{ color: 'var(--color-ink)' }}>{offPending}</span>
+        </>
+      )}
+    </span>
   );
 }
 
@@ -642,8 +722,25 @@ function MonthView({
   const cells = monthGrid(anchor);
   const month = anchor.getMonth();
   const now = new Date();
-  const countByDate = new Map<string, number>();
-  for (const s of sessions) countByDate.set(s.date, (countByDate.get(s.date) ?? 0) + 1);
+  // Группируем сессии дня по 4 категориям для badge на месячном виде:
+  //   offApproved — оффлайн, согласовано клиентом
+  //   offPending  — оффлайн, ещё ждёт подтверждения (любой не-approved статус)
+  //   onlineDone  — онлайн, клиент получил уведомление (delivered/approved)
+  //   onlineWait  — онлайн, ещё не получено (none/sent без delivered_at)
+  type DayCounts = { offApproved: number; offPending: number; onlineDone: number; onlineWait: number };
+  const countByDate = new Map<string, DayCounts>();
+  for (const s of sessions) {
+    const c = countByDate.get(s.date) ?? { offApproved: 0, offPending: 0, onlineDone: 0, onlineWait: 0 };
+    const stage = approvalStage(s);
+    if (s.isOnline) {
+      if (stage === 'delivered' || stage === 'approved') c.onlineDone++;
+      else c.onlineWait++;
+    } else {
+      if (stage === 'approved') c.offApproved++;
+      else c.offPending++;
+    }
+    countByDate.set(s.date, c);
+  }
   // Для singleClient: первый session дня (для значка согласования и оплаты).
   const firstByDate = new Map<string, Session>();
   if (singleClient) {
@@ -651,6 +748,7 @@ function MonthView({
     for (const s of sorted) if (!firstByDate.has(s.date)) firstByDate.set(s.date, s);
   }
   const monthTotal = sessions.filter((s) => parseISO(s.date).getMonth() === month).length;
+  void monthTotal;
 
   return (
     <div className="px-4 pt-3">
@@ -662,13 +760,16 @@ function MonthView({
       <div className="grid grid-cols-7 gap-1">
         {cells.map((d) => {
           const iso = toISODate(d);
-          const n = countByDate.get(iso) ?? 0;
+          const counts = countByDate.get(iso);
           const inMonth = d.getMonth() === month;
           const today = sameDay(d, now);
           const first = singleClient ? firstByDate.get(iso) : undefined;
-          const isPaid = first ? paidMap[first.id] === true : false;
-          // В режиме одного клиента — фон дня по оплате (если есть занятие).
-          const dayBg = singleClient && first ? paymentBg(isPaid) : inMonth ? 'var(--color-card)' : 'transparent';
+          // В режиме одного клиента — фон ячейки как у плитки в недельном виде:
+          //   approved → акцент-лайм, остальные с занятием → бежевая (ink), без занятия → card.
+          const dayBg = singleClient && first
+            ? sessionTileBg(first)
+            : inMonth ? 'var(--color-card)' : 'transparent';
+          const dayFg = singleClient && first ? sessionTileFg(first) : 'var(--color-ink)';
           return (
             <button
               key={iso}
@@ -676,20 +777,16 @@ function MonthView({
               className={`flex aspect-square flex-col items-center justify-center gap-0.5 rounded-xl ${today ? 'ring-2 ring-ink' : ''}`}
               style={{ background: dayBg }}
             >
-              <span className={`text-[12px] font-semibold tabular-nums ${inMonth ? '' : 'text-[var(--color-ink-muted)] opacity-50'}`}>
+              <span
+                className={`text-[12px] font-semibold tabular-nums ${inMonth ? '' : 'opacity-50'}`}
+                style={{ color: inMonth ? dayFg : 'var(--color-ink-muted)' }}
+              >
                 {d.getDate()}
               </span>
               {singleClient ? (
-                first ? <ApprovalBadge session={first} size={13} /> : null
+                first ? <DayStatusIcon session={first} onTile /> : null
               ) : (
-                n > 0 && (
-                  <span
-                    className="text-[11px] font-bold tabular-nums"
-                    style={{ color: 'var(--color-accent)' }}
-                  >
-                    {n}
-                  </span>
-                )
+                counts && <DayCountsBadge counts={counts} />
               )}
             </button>
           );
@@ -699,7 +796,6 @@ function MonthView({
   );
 }
 
-const LOCATIONS = ['Зал · ClubAlex', 'Онлайн'];
 const DURATIONS = [30, 45, 60, 90];
 
 function SessionForm({
@@ -713,21 +809,47 @@ function SessionForm({
   defaultDate: string;
   defaultStartTime?: string;
   defaultClientId?: string;
-  onClose: () => void;
+  onClose: (saved?: boolean) => void;
 }) {
   const { data: clients = [] } = useClients();
+  const { data: gyms = [] } = useGyms();
+  const { data: trainer } = useTrainer();
   const createMut = useCreateSession();
   const updateMut = useUpdateSession();
   const deleteMut = useDeleteSession();
   const confirm = useConfirm();
 
-  const [clientId, setClientId] = useState(session?.clientId ?? defaultClientId ?? '');
+  // Тип места: gym (один из залов тренера) или online. Хранится в state отдельно,
+  // на сохранении конвертируется в location string + isOnline.
+  const initialLocation = session?.location ?? null;
+  const initialIsOnline = session?.isOnline ?? initialLocation === 'Онлайн';
+  // При создании нового занятия предлагаем последний выбранный зал из localStorage,
+  // чтобы тренеру не приходилось каждый раз листать список.
+  const lastUsedGym = typeof window !== 'undefined' ? localStorage.getItem('last_used_gym') : null;
+  const [placeMode, setPlaceMode] = useState<'gym' | 'online'>(initialIsOnline ? 'online' : 'gym');
+  const [gymName, setGymName] = useState<string>(
+    initialIsOnline ? '' : (initialLocation ?? (session ? '' : lastUsedGym ?? ''))
+  );
+  // Последний выбранный клиент: берётся, только если создаётся новая сессия и
+  // не передан defaultClientId (контекстный — например, при создании из карточки клиента).
+  const lastUsedClientId = typeof window !== 'undefined' ? localStorage.getItem('last_used_client') : null;
+  const [clientId, setClientId] = useState(
+    session?.clientId ?? defaultClientId ?? (session ? '' : lastUsedClientId ?? '')
+  );
   const [date, setDate] = useState(session?.date ?? defaultDate);
   const [time, setTime] = useState(session?.startTime ?? defaultStartTime ?? '10:00');
   const [duration, setDuration] = useState(session?.durationMin ?? 60);
-  const [location, setLocation] = useState(session?.location ?? LOCATIONS[0]);
   const [title, setTitle] = useState(session?.title ?? '');
   const [typePickerOpen, setTypePickerOpen] = useState(false);
+
+  // При появлении списка залов автоматически выбираем первый, если ничего не выбрано.
+  useEffect(() => {
+    if (placeMode === 'gym' && !gymName && gyms.length > 0) {
+      setGymName(gyms[0].name);
+    }
+  }, [gyms, gymName, placeMode]);
+
+  const location = placeMode === 'online' ? 'Онлайн' : gymName;
 
   // Тренер сам статус не выставляет. Логика: если у клиента есть accountId —
   // занятие автоматически уходит на согласование (approval='pending').
@@ -744,6 +866,7 @@ function SessionForm({
 
   const save = async () => {
     if (!clientId) { alert('Выберите клиента'); return; }
+    const isOnline = placeMode === 'online';
     const input: SessionInput = {
       clientId,
       date,
@@ -751,12 +874,19 @@ function SessionForm({
       durationMin: duration,
       location: location || null,
       title: title.trim() || null,
-      approval: computeApproval(),
+      // У онлайн-тренировок нет статуса «согласовано» — максимум «получено».
+      approval: isOnline ? (session?.approval === 'approved' ? 'approved' : 'pending') : computeApproval(),
+      isOnline,
       // deliveredAt не трогаем — undefined; сервер сохранит существующее.
     };
     if (session) await updateMut.mutateAsync({ id: session.id, input });
     else await createMut.mutateAsync(input);
-    onClose();
+    // Запоминаем последний выбранный зал и клиента — для удобства следующего ввода.
+    try {
+      if (!isOnline && gymName) localStorage.setItem('last_used_gym', gymName);
+      if (clientId) localStorage.setItem('last_used_client', clientId);
+    } catch { /* приватный режим */ }
+    onClose(true);
   };
 
   const remove = async () => {
@@ -767,21 +897,23 @@ function SessionForm({
   };
 
   const inputCls = 'w-full rounded-2xl bg-[var(--color-card)] px-4 py-3.5 text-[15px] outline-none focus:ring-2 focus:ring-ink/10';
+  // Внутренний select: убираем системную стрелку, оставляем место под кастомный chip справа.
+  const selectInnerCls = 'w-full appearance-none rounded-2xl bg-[var(--color-card)] pl-4 pr-14 py-3.5 text-[15px] outline-none focus:ring-2 focus:ring-ink/10';
 
   return (
     <div className="px-4 pb-8 pt-2 space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-[17px] font-bold">{session ? 'Занятие' : 'Новое занятие'}</h2>
-        <button onClick={onClose} className="text-[13px] text-[var(--color-ink-muted)]">Отмена</button>
+        <button onClick={() => onClose()} className="text-[13px] text-[var(--color-ink-muted)]">Отмена</button>
       </div>
 
       <Field label="Клиент">
-        <select value={clientId} onChange={(e) => setClientId(e.target.value)} className={inputCls}>
-          <option value="">— выберите клиента —</option>
-          {clients.map((c) => (
-            <option key={c.id} value={c.id}>{fullName(c.firstName, c.lastName)}</option>
-          ))}
-        </select>
+        <CustomSelect
+          value={clientId}
+          onChange={setClientId}
+          placeholder="— выберите клиента —"
+          options={clients.map((c) => ({ value: c.id, label: fullName(c.firstName, c.lastName) }))}
+        />
       </Field>
 
       <div className="grid grid-cols-2 gap-3">
@@ -808,16 +940,36 @@ function SessionForm({
       </Field>
 
       <Field label="Место">
-        <div className="flex gap-1.5">
-          {LOCATIONS.map((loc) => (
+        <div className="space-y-2">
+          <div className="flex gap-1.5">
             <button
-              key={loc}
-              onClick={() => setLocation(loc)}
-              className={`rounded-full px-4 py-2 text-[13px] font-medium ${location === loc ? 'bg-[var(--color-accent)] text-[var(--color-accent-on)]' : 'bg-[var(--color-chip)]'}`}
+              onClick={() => setPlaceMode('gym')}
+              className={`rounded-full px-4 py-2 text-[13px] font-medium ${placeMode === 'gym' ? 'bg-[var(--color-accent)] text-[var(--color-accent-on)]' : 'bg-[var(--color-chip)]'}`}
             >
-              {loc}
+              Зал
             </button>
-          ))}
+            {trainer?.worksOnline && (
+              <button
+                onClick={() => setPlaceMode('online')}
+                className={`rounded-full px-4 py-2 text-[13px] font-medium ${placeMode === 'online' ? 'bg-[var(--color-accent)] text-[var(--color-accent-on)]' : 'bg-[var(--color-chip)]'}`}
+              >
+                Онлайн
+              </button>
+            )}
+          </div>
+          {placeMode === 'gym' && (
+            gyms.length === 0 ? (
+              <div className="rounded-2xl bg-[var(--color-card)] px-4 py-3 text-[12px] text-[var(--color-ink-muted)]">
+                Нет залов. Добавьте их в карточке тренера → «Залы».
+              </div>
+            ) : (
+              <CustomSelect
+                value={gymName}
+                onChange={setGymName}
+                options={gyms.map((g) => ({ value: g.name, label: g.name }))}
+              />
+            )
+          )}
         </div>
       </Field>
 
@@ -864,6 +1016,100 @@ function SessionForm({
     </div>
   );
 }
+
+// Кастомный селект. Стилизован под тёмную тему приложения:
+//  • триггер — та же плашка, что у текстового инпута;
+//  • кружок-чип со стрелкой вниз, который плавно поворачивается вверх при открытии;
+//  • выпадающий список — анимация opacity + scale, скролл при большом числе опций;
+//  • при клике вне или Escape — закрывается.
+type CustomSelectOption = { value: string; label: string };
+function CustomSelect({
+  value,
+  onChange,
+  options,
+  placeholder,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  options: CustomSelectOption[];
+  placeholder?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (!open) return;
+    const onClick = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
+    document.addEventListener('mousedown', onClick);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onClick);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [open]);
+  const current = options.find((o) => o.value === value);
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="flex w-full items-center justify-between gap-3 rounded-2xl bg-[var(--color-card)] px-4 py-3.5 text-left text-[15px]"
+      >
+        <span className={current ? '' : 'text-[var(--color-ink-muted)]'}>
+          {current?.label ?? placeholder ?? '—'}
+        </span>
+        <span
+          aria-hidden
+          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[var(--color-card-elevated)] transition-transform"
+          style={{
+            border: '1px solid var(--color-line)',
+            transform: open ? 'rotate(180deg)' : 'rotate(0deg)',
+          }}
+        >
+          <ChevronDown size={14} strokeWidth={2.2} className="text-[var(--color-ink-muted)]" />
+        </span>
+      </button>
+      {open && (
+        <div
+          className="absolute left-0 right-0 top-full z-30 mt-2 origin-top overflow-hidden rounded-2xl bg-[var(--color-card-elevated)] shadow-2xl"
+          style={{
+            border: '1px solid var(--color-line)',
+            animation: 'select-pop 160ms cubic-bezier(0.2, 0.8, 0.2, 1)',
+            maxHeight: 320,
+          }}
+        >
+          <div className="max-h-[320px] overflow-y-auto py-1">
+            {options.length === 0 && (
+              <div className="px-4 py-3 text-[13px] text-[var(--color-ink-muted)]">Пусто</div>
+            )}
+            {options.map((o) => {
+              const selected = o.value === value;
+              return (
+                <button
+                  key={o.value}
+                  type="button"
+                  onClick={() => { onChange(o.value); setOpen(false); }}
+                  className="flex w-full items-center justify-between gap-3 px-4 py-2.5 text-left text-[14px] hover:bg-black/10 active:bg-black/20"
+                  style={{
+                    background: selected ? 'rgba(212,255,61,0.10)' : 'transparent',
+                    color: selected ? 'var(--color-accent-text)' : 'var(--color-ink)',
+                    fontWeight: selected ? 600 : 400,
+                  }}
+                >
+                  <span className="truncate">{o.label}</span>
+                  {selected && <Check size={14} strokeWidth={2.4} style={{ color: 'var(--color-accent-text)' }} />}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 
 function WorkoutTypePicker({
   open,

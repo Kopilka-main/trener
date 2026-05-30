@@ -15,11 +15,14 @@ const schema = readFileSync(SCHEMA_PATH, 'utf-8');
 db.exec(schema);
 
 // Лёгкая миграция новых колонок (SQLite не поддерживает IF NOT EXISTS в ALTER).
-function ensureColumn(table: string, name: string, def: string) {
+// Возвращает true, если колонка добавлена сейчас (для однократных пост-миграций).
+function ensureColumn(table: string, name: string, def: string): boolean {
   const cols = db.prepare(`PRAGMA table_info(${table})`).all() as { name: string }[];
   if (!cols.some((c) => c.name === name)) {
     db.exec(`ALTER TABLE ${table} ADD COLUMN ${name} ${def}`);
+    return true;
   }
+  return false;
 }
 ensureColumn('clients', 'telegram', 'TEXT');
 ensureColumn('clients', 'whatsapp', 'TEXT');
@@ -27,6 +30,22 @@ ensureColumn('clients', 'instagram', 'TEXT');
 ensureColumn('clients', 'max', 'TEXT');
 ensureColumn('exercises', 'equipment', 'TEXT');
 ensureColumn('expenses', 'client_id', 'TEXT');
+ensureColumn('measurements', 'shoulders_cm', 'REAL');
+ensureColumn('sessions', 'is_online', "INTEGER NOT NULL DEFAULT 0");
+// works_online: новый дефолт 1 — большинство тренеров принимают онлайн.
+// Для апгрейда со старой версии (колонка уже добавлялась с дефолтом 0)
+// одноразово выставляем 1, чтобы кнопка «Онлайн» появилась в форме занятия.
+const addedWorksOnline = ensureColumn('trainer', 'works_online', 'INTEGER NOT NULL DEFAULT 1');
+if (addedWorksOnline) {
+  db.exec(`UPDATE trainer SET works_online = 1`);
+} else {
+  // Старая колонка с дефолтом 0 — апгрейд: если у всех тренеров 0, ставим 1.
+  // Если хоть у одного 1 — оставляем как есть (пользователь уже редактировал).
+  const row = db.prepare<[], { max: number }>('SELECT COALESCE(MAX(works_online), 0) AS max FROM trainer').get();
+  if (row && row.max === 0) {
+    db.exec(`UPDATE trainer SET works_online = 1`);
+  }
+}
 
 export type ClientRow = {
   id: string;
@@ -127,6 +146,7 @@ export type SessionRow = {
   status: 'planned' | 'completed' | 'cancelled';
   approval: 'none' | 'pending' | 'approved';
   delivered_at: string | null;
+  is_online: number;
   note: string | null;
   created_at: string;
 };
@@ -188,6 +208,39 @@ export type PaymentPackageRow = {
   created_at: string;
 };
 
+export type MeasurementRow = {
+  id: string;
+  client_id: string;
+  date: string;
+  weight_kg: number | null;
+  body_fat_pct: number | null;
+  muscle_pct: number | null;
+  water_pct: number | null;
+  chest_cm: number | null;
+  shoulders_cm: number | null;
+  waist_cm: number | null;
+  hips_cm: number | null;
+  biceps_l_cm: number | null;
+  biceps_r_cm: number | null;
+  thigh_l_cm: number | null;
+  thigh_r_cm: number | null;
+  calf_l_cm: number | null;
+  calf_r_cm: number | null;
+  neck_cm: number | null;
+  note: string | null;
+  created_at: string;
+};
+
+export type ProgressPhotoRow = {
+  id: string;
+  client_id: string;
+  date: string;
+  angle: 'front' | 'side' | 'back';
+  file_path: string;
+  note: string | null;
+  created_at: string;
+};
+
 export type TrainerRow = {
   id: string;
   first_name: string;
@@ -201,4 +254,5 @@ export type TrainerRow = {
   telegram: string | null;
   instagram: string | null;
   share_code: string | null;
+  works_online: number;
 };

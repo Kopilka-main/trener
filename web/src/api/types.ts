@@ -137,6 +137,7 @@ export type Session = {
   status: SessionStatus;
   approval: SessionApproval;
   deliveredAt: string | null;   // ✓✓ серые: клиент получил уведомление
+  isOnline: boolean;
   note: string | null;
   createdAt: string;
 };
@@ -152,6 +153,7 @@ export type SessionInput = {
   status?: SessionStatus;
   approval?: SessionApproval;
   deliveredAt?: string | null;          // undefined — не трогать; null — сброс; ISO — установить
+  isOnline?: boolean;
   note?: string | null;
 };
 
@@ -260,6 +262,7 @@ export type Trainer = {
   telegram: string | null;
   instagram: string | null;
   shareCode: string | null;
+  worksOnline: boolean;
 };
 
 export type TrainerInput = Omit<Trainer, 'id' | 'shareCode'>;

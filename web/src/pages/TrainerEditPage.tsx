@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { X } from 'lucide-react';
+import { Plus, Trash2, X } from 'lucide-react';
 import { ScreenHeader } from '../components/ScreenHeader';
 import { Avatar } from '../components/Avatar';
 import { Field, TextArea, TextInput } from '../components/Field';
 import { useTrainer, useUpdateTrainer } from '../api/trainer';
+import { useCreateGym, useDeleteGym, useGyms } from '../api/gyms';
 import type { TrainerInput } from '../api/types';
 
 export function TrainerEditPage() {
@@ -107,7 +108,74 @@ export function TrainerEditPage() {
         <Field label="Instagram">
           <TextInput placeholder="@username" value={form.instagram ?? ''} onChange={(e) => setField('instagram', e.target.value || null)} />
         </Field>
+
+        <Field label="Формат работы">
+          <label className="flex w-full cursor-pointer items-center justify-between gap-3 rounded-2xl bg-[var(--color-card)] px-4 py-3">
+            <span>
+              <span className="block text-[14px] font-semibold">Онлайн-тренировки</span>
+              <span className="block text-[12px] text-[var(--color-ink-muted)]">в форме занятия появится вариант «Онлайн»</span>
+            </span>
+            <input
+              type="checkbox"
+              checked={form.worksOnline}
+              onChange={(e) => setField('worksOnline', e.target.checked)}
+              className="h-5 w-5 accent-[var(--color-accent)]"
+            />
+          </label>
+        </Field>
+
+        <GymsEditor />
       </div>
     </div>
+  );
+}
+
+function GymsEditor() {
+  const { data: gyms = [] } = useGyms();
+  const create = useCreateGym();
+  const remove = useDeleteGym();
+  const [newName, setNewName] = useState('');
+
+  const add = async () => {
+    const name = newName.trim();
+    if (!name) return;
+    await create.mutateAsync({ name, monthlyRent: null, note: null });
+    setNewName('');
+  };
+
+  return (
+    <Field label="Залы (для выбора в форме занятия)">
+      <div className="overflow-hidden rounded-2xl bg-[var(--color-card)] divide-y divide-[var(--color-line)]">
+        {gyms.map((g) => (
+          <div key={g.id} className="flex items-center justify-between gap-2 px-4 py-3 text-[14px]">
+            <span className="min-w-0 flex-1 truncate">{g.name}</span>
+            <button
+              onClick={() => remove.mutate(g.id)}
+              className="rounded-md p-1.5 text-[var(--color-ink-muted)]"
+              aria-label="Удалить"
+            >
+              <Trash2 size={14} />
+            </button>
+          </div>
+        ))}
+        <div className="flex items-center gap-2 px-4 py-3">
+          <input
+            value={newName}
+            onChange={(e) => setNewName(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') add(); }}
+            placeholder="Название клуба (Алекс Фитнес, СССР, World Class)"
+            className="flex-1 bg-transparent text-[14px] focus:outline-none"
+          />
+          <button
+            onClick={add}
+            disabled={!newName.trim()}
+            className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--color-accent)] text-[var(--color-accent-on)] disabled:opacity-40"
+            aria-label="Добавить"
+          >
+            <Plus size={16} />
+          </button>
+        </div>
+      </div>
+    </Field>
   );
 }

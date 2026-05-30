@@ -2,12 +2,13 @@ import { useQuery } from '@tanstack/react-query';
 import { api } from './client';
 
 export type TrainerAlert = {
-  type: 'low_balance' | 'unpaid' | 'no_upcoming';
-  severity: 'warn' | 'danger';
-  clientId: string;
-  clientName: string;
+  type: 'low_balance' | 'unpaid' | 'no_upcoming' | 'online_today' | 'birthday';
+  severity: 'warn' | 'danger' | 'info';
+  clientId: string | null;
+  clientName: string | null;
   remaining: number;
   message: string;
+  clientNames?: string[];
 };
 
 export function useTrainerAlerts() {

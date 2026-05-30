@@ -79,6 +79,47 @@ input, textarea, select {
   color: inherit;
 }
 
+/* Прячем нативную иконку у date/time-инпутов (календарик/часы) и принудительно
+   убираем AM/PM поле — везде 24-часовой формат, без правой иконки. */
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="time"]::-webkit-calendar-picker-indicator {
+  display: none;
+  -webkit-appearance: none;
+  appearance: none;
+}
+input[type="time"]::-webkit-datetime-edit-ampm-field {
+  display: none;
+}
+input[type="date"],
+input[type="time"] {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+/* Поп-ап анимация для кастомных селектов / меню */
+@keyframes select-pop {
+  0% { opacity: 0; transform: translateY(-4px) scale(0.98); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Анимация удаления карточки (уведомление, упражнение из тренировки):
+   плавный сворачивающийся фейд. Используется в NotificationsPage. */
+@keyframes card-collapse {
+  0%   { opacity: 1; max-height: 200px; margin-bottom: 8px; transform: scale(1); }
+  60%  { opacity: 0; transform: scale(0.96); }
+  100% { opacity: 0; max-height: 0; margin-bottom: 0; padding-top: 0; padding-bottom: 0; transform: scale(0.96); }
+}
+.card-collapse {
+  animation: card-collapse 320ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  overflow: hidden;
+}
+
+/* Заполнение круга прогресса при hold-to-confirm. */
+@keyframes hold-progress {
+  from { stroke-dashoffset: 188.5; }
+  to   { stroke-dashoffset: 0; }
+}
+
 button {
   font: inherit;
   -webkit-tap-highlight-color: transparent;

@@ -37,6 +37,7 @@ export const mockTrainer: Trainer = {
   telegram: '@alex_morozov',
   instagram: '@alex.coach',
   shareCode: 'AM-2026',
+  worksOnline: true,
 };
 
 const firstNames = ['Алина', 'Михаил', 'Екатерина', 'Дмитрий', 'Анна', 'Сергей', 'Ольга', 'Иван', 'Мария', 'Артём',
@@ -250,6 +251,7 @@ function makeSession(i: number, clientIdx: number, dayOffset: number, hour: numb
     status: dayOffset < 0 ? 'completed' : 'planned',
     approval: 'approved',
     deliveredAt: dayOffset >= 0 ? new Date().toISOString() : null,
+    isOnline: false,
     note: null,
     createdAt: new Date().toISOString(),
   };
@@ -274,6 +276,44 @@ for (let d = 1; d <= 5; d++) {
   sessionsRaw.push(makeSession(sessionId++, d, -d, 10, 0));
   sessionsRaw.push(makeSession(sessionId++, d + 10, -d, 16, 0));
 }
+
+// Онлайн-тренировки для cl_001 (Алина Кузнецова) — четыре разных статуса:
+//   • not_sent  (approval='none',     deliveredAt=null)
+//   • sent      (approval='pending',  deliveredAt=null)
+//   • delivered (approval='pending',  deliveredAt=ISO)  — «получено»
+//   • approved  (approval='approved', deliveredAt=ISO)  — «согласовано»
+// Раскидываем по будущим дням, чтобы их было видно на разных ячейках месяца.
+function makeOnlineSession(
+  i: number,
+  dayOffset: number,
+  hour: number,
+  approval: 'none' | 'pending' | 'approved',
+  delivered: boolean,
+): Session {
+  const cli = mockClients.find((c) => c.id === 'cl_001') ?? mockClients[0];
+  return {
+    id: `s-online-${i}`,
+    clientId: cli.id,
+    clientFirstName: cli.firstName,
+    clientLastName: cli.lastName,
+    workoutId: null,
+    date: inDays(dayOffset),
+    startTime: `${String(hour).padStart(2, '0')}:00`,
+    durationMin: 45,
+    location: 'Онлайн',
+    title: 'Онлайн · Сила',
+    status: 'planned',
+    approval,
+    deliveredAt: delivered ? new Date().toISOString() : null,
+    isOnline: true,
+    note: null,
+    createdAt: new Date().toISOString(),
+  };
+}
+sessionsRaw.push(makeOnlineSession(1, 2, 19, 'none', false));      // не отправлено
+sessionsRaw.push(makeOnlineSession(2, 4, 19, 'pending', false));   // отправлено
+sessionsRaw.push(makeOnlineSession(3, 6, 19, 'pending', true));    // получено
+sessionsRaw.push(makeOnlineSession(4, 9, 19, 'approved', true));   // согласовано
 
 export const mockSessions: Session[] = sessionsRaw;
 

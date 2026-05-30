@@ -33,13 +33,31 @@ const balancesStmt = db.prepare<[], Row>(`
 const LOW_BALANCE_THRESHOLD = 7;
 
 type Alert = {
-  type: 'low_balance' | 'unpaid' | 'no_upcoming';
-  severity: 'warn' | 'danger';
-  clientId: string;
-  clientName: string;
-  remaining: number;
+  type: 'low_balance' | 'unpaid' | 'no_upcoming' | 'online_today' | 'birthday';
+  severity: 'warn' | 'danger' | 'info';
+  clientId: string | null;        // null — сводный алерт (online_today)
+  clientName: string | null;
+  remaining: number;              // 0 для алертов без баланса
   message: string;
+  clientNames?: string[];         // online_today: список имён клиентов
 };
+
+// Сегодняшние онлайн-тренировки (completed): для сводки «X тренировок проведено».
+const onlineTodayStmt = db.prepare<[], { id: string; first_name: string; last_name: string }>(`
+  SELECT DISTINCT c.id, c.first_name, c.last_name
+  FROM sessions s
+  JOIN clients c ON c.id = s.client_id
+  WHERE s.is_online = 1 AND s.status = 'completed' AND s.date = DATE('now')
+  ORDER BY c.first_name, c.last_name
+`);
+
+// Клиенты с днём рождения сегодня (по дню и месяцу, без учёта года).
+const birthdaysTodayStmt = db.prepare<[], { id: string; first_name: string; last_name: string; birth_date: string }>(`
+  SELECT id, first_name, last_name, birth_date
+  FROM clients
+  WHERE birth_date IS NOT NULL
+    AND strftime('%m-%d', birth_date) = strftime('%m-%d', 'now')
+`);
 
 alertsRouter.get(
   '/',
@@ -82,10 +100,38 @@ alertsRouter.get(
         });
       }
     }
-    // danger выше warn, дальше — по остатку (меньше = выше).
+    // Сегодняшние онлайн-тренировки — одна сводная карточка.
+    const onlineToday = onlineTodayStmt.all();
+    if (onlineToday.length > 0) {
+      const names = onlineToday.map((r) => `${r.first_name} ${r.last_name}`);
+      alerts.push({
+        type: 'online_today',
+        severity: 'info',
+        clientId: null,
+        clientName: null,
+        remaining: 0,
+        message: `Сегодня пройдено ${onlineToday.length} ${plural(onlineToday.length, 'тренировка', 'тренировки', 'тренировок')} онлайн`,
+        clientNames: names,
+      });
+    }
+
+    // Дни рождения сегодня — по одной карточке на клиента.
+    for (const r of birthdaysTodayStmt.all()) {
+      alerts.push({
+        type: 'birthday',
+        severity: 'info',
+        clientId: r.id,
+        clientName: `${r.first_name} ${r.last_name}`,
+        remaining: 0,
+        message: 'Ожидается поздравление с днём рождения',
+      });
+    }
+
+    // Порядок: danger → warn → info; внутри уровня — по остатку (меньше = выше).
+    const severityOrder = { danger: 0, warn: 1, info: 2 };
     alerts.sort(
       (a, b) =>
-        (a.severity === 'danger' ? 0 : 1) - (b.severity === 'danger' ? 0 : 1) ||
+        severityOrder[a.severity] - severityOrder[b.severity] ||
         a.remaining - b.remaining
     );
     res.json(alerts);

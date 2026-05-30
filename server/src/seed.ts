@@ -443,6 +443,63 @@ export function seedDemoPackagesIfEmpty(database: typeof defaultDb = defaultDb) 
 
 // Демо-сообщения в чате от клиента — чтобы у тренера сразу были непрочитанные
 // и в табе «Чат» отображался бейдж.
+// Демо: 4 онлайн-тренировки у cl_001 (Алина) — по одной в каждом статусе.
+// Идемпотентно: если у клиента уже есть онлайн-сессии — функция ничего не делает.
+export function seedDemoOnlineSessions(database: typeof defaultDb = defaultDb) {
+  if (!database.prepare<[string], { id: string }>('SELECT id FROM clients WHERE id = ?').get('cl_001')) return;
+  const existing = database
+    .prepare<[], { n: number }>(`SELECT COUNT(*) AS n FROM sessions WHERE client_id = 'cl_001' AND is_online = 1`)
+    .get();
+  if (existing && existing.n > 0) return;
+
+  const insertSession = database.prepare(`
+    INSERT INTO sessions
+      (id, client_id, workout_id, date, start_time, duration_min, location, title,
+       status, approval, delivered_at, is_online, note, created_at)
+    VALUES
+      (@id, @client_id, @workout_id, @date, @start_time, @duration_min, @location, @title,
+       @status, @approval, @delivered_at, @is_online, @note, @created_at)
+  `);
+
+  const inDays = (n: number) => {
+    const d = new Date();
+    d.setDate(d.getDate() + n);
+    return d.toISOString().slice(0, 10);
+  };
+  const nowIso = new Date().toISOString();
+  const variants: Array<{
+    offset: number;
+    approval: 'none' | 'pending' | 'approved';
+    delivered: boolean;
+    label: string;
+  }> = [
+    { offset: 2, approval: 'none', delivered: false, label: 'not_sent' },
+    { offset: 4, approval: 'pending', delivered: false, label: 'sent' },
+    { offset: 6, approval: 'pending', delivered: true, label: 'delivered' },
+    { offset: 9, approval: 'approved', delivered: true, label: 'approved' },
+  ];
+  for (let i = 0; i < variants.length; i++) {
+    const v = variants[i];
+    insertSession.run({
+      id: `s-online-demo-${i + 1}`,
+      client_id: 'cl_001',
+      workout_id: null,
+      date: inDays(v.offset),
+      start_time: '19:00',
+      duration_min: 45,
+      location: 'Онлайн',
+      title: `Онлайн · ${v.label}`,
+      status: 'planned',
+      approval: v.approval,
+      delivered_at: v.delivered ? nowIso : null,
+      is_online: 1,
+      note: null,
+      created_at: nowIso,
+    });
+  }
+  console.log('[seed] inserted 4 demo online sessions for cl_001');
+}
+
 export function seedDemoChatIfEmpty(database: typeof defaultDb = defaultDb) {
   if (!database.prepare<[string], { id: string }>('SELECT id FROM clients WHERE id = ?').get('cl_001')) return;
 
@@ -459,26 +516,36 @@ export function seedDemoChatIfEmpty(database: typeof defaultDb = defaultDb) {
     .get();
   if (unread && unread.n > 0) return;
 
-  database
-    .prepare('INSERT OR IGNORE INTO conversations (id, client_id) VALUES (?, ?)')
-    .run('conv_demo_001', 'cl_001');
+  // У cl_001 может уже быть conversation с другим id (UNIQUE по client_id).
+  // Берём существующую, либо создаём новую под наш id.
+  const existingConv = database
+    .prepare<[string], { id: string }>('SELECT id FROM conversations WHERE client_id = ?')
+    .get('cl_001');
+  let convId: string;
+  if (existingConv) {
+    convId = existingConv.id;
+  } else {
+    convId = 'conv_demo_001';
+    database
+      .prepare('INSERT INTO conversations (id, client_id) VALUES (?, ?)')
+      .run(convId, 'cl_001');
+  }
 
   const insMsg = database.prepare(`
     INSERT OR IGNORE INTO messages (id, conversation_id, sender_role, body, created_at)
     VALUES (@id, @conversation_id, @sender_role, @body, @created_at)
   `);
-  const nowIso = new Date().toISOString();
   insMsg.run({
     id: `msg_demo_${Date.now()}`,
-    conversation_id: 'conv_demo_001',
+    conversation_id: convId,
     sender_role: 'client',
     body: 'Здравствуйте! Подскажите, во вторник в 18:00 силу делаем?',
-    created_at: nowIso,
+    created_at: new Date().toISOString(),
   });
   // Сбрасываем trainer_last_read_at, чтобы новое сообщение точно стало непрочитанным.
   database
     .prepare(`UPDATE conversations SET trainer_last_read_at = NULL WHERE id = ?`)
-    .run('conv_demo_001');
+    .run(convId);
   console.log('[seed] demo unread chat message ensured for cl_001');
 }
 

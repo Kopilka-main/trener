@@ -17,6 +17,7 @@ const sessionInput = z.object({
   status: z.enum(['planned', 'completed', 'cancelled']).optional(),
   approval: z.enum(['none', 'pending', 'approved']).optional(),
   deliveredAt: z.string().nullish(),                 // ISO timestamp или null для сброса; undefined — не трогать
+  isOnline: z.boolean().optional(),
   note: z.string().max(2000).nullish(),
 });
 
@@ -43,8 +44,8 @@ const getStmt = db.prepare<[string], SessionJoined>(`
 `);
 
 const insertStmt = db.prepare(`
-  INSERT INTO sessions (id, client_id, workout_id, date, start_time, duration_min, location, title, status, approval, note, created_at)
-  VALUES (@id, @client_id, @workout_id, @date, @start_time, @duration_min, @location, @title, @status, @approval, @note, @created_at)
+  INSERT INTO sessions (id, client_id, workout_id, date, start_time, duration_min, location, title, status, approval, is_online, note, created_at)
+  VALUES (@id, @client_id, @workout_id, @date, @start_time, @duration_min, @location, @title, @status, @approval, @is_online, @note, @created_at)
 `);
 
 const updateStmt = db.prepare(`
@@ -59,6 +60,7 @@ const updateStmt = db.prepare(`
     status = @status,
     approval = @approval,
     delivered_at = @delivered_at,
+    is_online = @is_online,
     note = @note
   WHERE id = @id
 `);
@@ -80,6 +82,7 @@ function toApi(row: SessionJoined) {
     status: row.status,
     approval: row.approval,
     deliveredAt: row.delivered_at,
+    isOnline: row.is_online === 1,
     note: row.note,
     createdAt: row.created_at,
   };
@@ -156,6 +159,7 @@ sessionsRouter.post(
       title: input.title ?? null,
       status: input.status ?? 'planned',
       approval: input.approval ?? 'none',
+      is_online: input.isOnline ? 1 : 0,
       note: input.note ?? null,
       created_at: new Date().toISOString(),
     });
@@ -181,6 +185,7 @@ sessionsRouter.put(
       approval: input.approval ?? existing.approval,
       // undefined — не трогать; null — сбросить; строка — установить.
       delivered_at: input.deliveredAt === undefined ? existing.delivered_at : input.deliveredAt,
+      is_online: input.isOnline === undefined ? existing.is_online : (input.isOnline ? 1 : 0),
       note: input.note ?? null,
     });
     res.json(toApi(requireRow(getStmt.get(existing.id), 'Session')));

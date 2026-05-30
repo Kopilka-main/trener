@@ -9,13 +9,17 @@ import { sessionsRouter } from './routes/sessions.js';
 import { trainerRouter } from './routes/trainer.js';
 import { clientPackagesRouter, packagesRouter } from './routes/packages.js';
 import { alertsRouter } from './routes/alerts.js';
+import { eventsRouter } from './routes/events.js';
 import { gymsRouter } from './routes/gyms.js';
 import { expensesRouter } from './routes/expenses.js';
 import { incomesRouter } from './routes/incomes.js';
 import { accountingRouter } from './routes/accounting.js';
 import { clientStatsRouter } from './routes/client-stats.js';
 import { chatRouter } from './routes/chat.js';
-import { runSeedIfEmpty, seedSessionsIfEmpty, seedTrainerIfEmpty, ensureTrainerShareCode, ensureSchemaUpgrades, normalizeWorkouts, seedDemoPackagesIfEmpty, seedDemoChatIfEmpty } from './seed.js';
+import { measurementsRouter, clientMeasurementsRouter } from './routes/measurements.js';
+import { progressPhotosRouter, clientProgressPhotosRouter } from './routes/progress-photos.js';
+import path from 'path';
+import { runSeedIfEmpty, seedSessionsIfEmpty, seedTrainerIfEmpty, ensureTrainerShareCode, ensureSchemaUpgrades, normalizeWorkouts, seedDemoPackagesIfEmpty, seedDemoChatIfEmpty, seedDemoOnlineSessions } from './seed.js';
 
 const app = express();
 app.use(cors());
@@ -34,11 +38,17 @@ app.use('/api/workout-templates', workoutTemplatesRouter);
 app.use('/api/sessions', sessionsRouter);
 app.use('/api/trainer', trainerRouter);
 app.use('/api/trainer/alerts', alertsRouter);
+app.use('/api/trainer/events', eventsRouter);
 app.use('/api/gyms', gymsRouter);
 app.use('/api/expenses', expensesRouter);
 app.use('/api/incomes', incomesRouter);
 app.use('/api/accounting', accountingRouter);
 app.use('/api/conversations', chatRouter);
+app.use('/api/clients/:id/measurements', clientMeasurementsRouter);
+app.use('/api/measurements', measurementsRouter);
+app.use('/api/clients/:id/progress-photos', clientProgressPhotosRouter);
+app.use('/api/progress-photos', progressPhotosRouter);
+app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 app.use('/api', clientWorkoutsRouter);
 
 app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
@@ -61,6 +71,7 @@ ensureSchemaUpgrades(db);
 normalizeWorkouts(db);
 seedDemoPackagesIfEmpty(db);
 seedDemoChatIfEmpty(db);
+seedDemoOnlineSessions(db);
 
 app.listen(PORT, () => {
   console.log(`[trener-server] http://localhost:${PORT}`);

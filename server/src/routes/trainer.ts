@@ -18,6 +18,7 @@ const trainerInput = z.object({
   email: z.string().max(120).nullish(),
   telegram: z.string().max(80).nullish(),
   instagram: z.string().max(80).nullish(),
+  worksOnline: z.boolean().optional(),
 });
 
 const getStmt = db.prepare<[string], TrainerRow>('SELECT * FROM trainer WHERE id = ?');
@@ -32,7 +33,8 @@ const updateStmt = db.prepare(`
     phone = @phone,
     email = @email,
     telegram = @telegram,
-    instagram = @instagram
+    instagram = @instagram,
+    works_online = @works_online
   WHERE id = @id
 `);
 
@@ -50,6 +52,7 @@ function toApi(r: TrainerRow) {
     telegram: r.telegram,
     instagram: r.instagram,
     shareCode: r.share_code,
+    worksOnline: r.works_online === 1,
   };
 }
 
@@ -77,6 +80,7 @@ trainerRouter.put(
       email: input.email ?? null,
       telegram: input.telegram ?? null,
       instagram: input.instagram ?? null,
+      works_online: input.worksOnline ? 1 : 0,
     });
     res.json(toApi(requireRow(getStmt.get(TRAINER_ID), 'Trainer')));
   })
