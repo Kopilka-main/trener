@@ -174,6 +174,8 @@ export type Expense = {
   amount: number;
   date: string;
   gymId: string | null;
+  clientId: string | null;
+  clientName: string | null;
   note: string | null;
   createdAt: string;
 };
@@ -183,6 +185,7 @@ export type ExpenseInput = {
   amount: number;
   date: string;
   gymId?: string | null;
+  clientId?: string | null;
   note?: string | null;
 };
 
@@ -192,6 +195,7 @@ export type IncomeItem = {
   clientName: string;
   lessonsPaid: number;
   totalPaid: number;
+  workoutType: string | null;
   createdAt: string;
   status: string;
 };

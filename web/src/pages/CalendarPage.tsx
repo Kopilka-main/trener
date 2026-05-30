@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Check, CheckCheck, ChevronLeft, ChevronRight, CircleDashed, Plus } from 'lucide-react';
 import { ScreenHeader } from '../components/ScreenHeader';
@@ -41,7 +41,15 @@ export function CalendarPage() {
 
   // У клиента по умолчанию показываем месяц (общая картина),
   // в общем календаре — неделю (компромисс между обзором и детализацией).
-  const [view, setView] = useState<View>(clientId ? 'month' : 'week');
+  // Можно переопределить через ?view=day|week|month.
+  const initialViewParam = params.get('view');
+  const initialView: View =
+    initialViewParam === 'day' || initialViewParam === 'week' || initialViewParam === 'month'
+      ? initialViewParam
+      : clientId
+        ? 'month'
+        : 'week';
+  const [view, setView] = useState<View>(initialView);
   const [creating, setCreating] = useState(false);
   const [anchor, setAnchor] = useState<Date>(new Date());
   const [editing, setEditing] = useState<Session | null>(null);
@@ -164,7 +172,7 @@ export function CalendarPage() {
           <div className="px-5 pb-1 text-[12px] text-[var(--color-ink-muted)]">{subLabel}</div>
           {(view === 'day' || view === 'week') && <ApprovalLegend />}
 
-          <div className="flex-1 overflow-y-auto pb-6">
+          <ScrollableTimeGrid view={view} anchor={anchor}>
             {view === 'day' && (
               <DayView
                 date={anchor}
@@ -194,9 +202,41 @@ export function CalendarPage() {
                 onPickDay={(d) => { setAnchor(d); setView('day'); }}
               />
             )}
-          </div>
+          </ScrollableTimeGrid>
         </>
       )}
+    </div>
+  );
+}
+
+/**
+ * Скроллируемый контейнер для day/week видов — при монтаже автоматически
+ * прокручивается до уровня текущего часа (минус 1 час сверху для контекста).
+ * Срабатывает при смене view и якорной даты.
+ */
+function ScrollableTimeGrid({
+  view,
+  anchor,
+  children,
+}: {
+  view: View;
+  anchor: Date;
+  children: React.ReactNode;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (view !== 'day' && view !== 'week') return;
+    const el = ref.current;
+    if (!el) return;
+    const HOUR_H = 56;
+    const now = new Date();
+    const currentHour = now.getHours();
+    const scrollHour = Math.max(0, currentHour - 1);
+    el.scrollTo({ top: (scrollHour - CAL_START_HOUR) * HOUR_H, behavior: 'auto' });
+  }, [view, anchor]);
+  return (
+    <div ref={ref} className="flex-1 overflow-y-auto pb-6">
+      {children}
     </div>
   );
 }
@@ -471,6 +511,9 @@ function WeekView({
   const hours = Array.from({ length: CAL_HOURS }, (_, i) => CAL_START_HOUR + i);
   const now = new Date();
   const gridH = CAL_HOURS * HOUR_H;
+  // Индикатор «сейчас»: показываем только если в выбранной неделе есть сегодня.
+  const todayIndex = dates.findIndex((d) => sameDay(d, now));
+  const nowTop = ((now.getHours() * 60 + now.getMinutes()) - CAL_START_HOUR * 60) / 60 * HOUR_H;
 
   return (
     <div className="px-2 pt-2">
@@ -502,7 +545,24 @@ function WeekView({
             </span>
           ))}
         </div>
-        <div className="grid flex-1 grid-cols-7">
+        <div className="relative grid flex-1 grid-cols-7">
+          {/* Индикатор текущего времени — горизонтальная линия + точка над колонкой «сегодня» */}
+          {todayIndex >= 0 && (
+            <>
+              <div
+                className="pointer-events-none absolute left-0 right-0 h-px bg-[var(--color-coral)]"
+                style={{ top: nowTop, zIndex: 5 }}
+              />
+              <div
+                className="pointer-events-none absolute h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[var(--color-coral)]"
+                style={{
+                  top: nowTop,
+                  left: `${((todayIndex + 0.5) / 7) * 100}%`,
+                  zIndex: 6,
+                }}
+              />
+            </>
+          )}
           {dates.map((d) => {
             const items = sessions
               .filter((s) => s.date === toISODate(d))
@@ -628,8 +688,8 @@ function MonthView({
               ) : (
                 n > 0 && (
                   <span
-                    className="flex h-4 min-w-[16px] items-center justify-center rounded-full px-1 text-[10px] font-bold tabular-nums"
-                    style={{ backgroundColor: loadColor(n), color: n >= 3 ? '#ffffff' : '#1a1a1a' }}
+                    className="text-[11px] font-bold tabular-nums"
+                    style={{ color: 'var(--color-accent)' }}
                   >
                     {n}
                   </span>
@@ -639,22 +699,6 @@ function MonthView({
           );
         })}
       </div>
-      {!singleClient && (
-        <div className="mt-3 flex items-center justify-center gap-1.5 text-[10px] text-[var(--color-ink-muted)]">
-          <span>нагрузка</span>
-          {[1, 2, 3, 4, 5].map((n) => (
-            <span
-              key={n}
-              className="flex h-4 min-w-[16px] items-center justify-center rounded-full px-1"
-              style={{ backgroundColor: loadColor(n), color: n >= 3 ? '#ffffff' : '#1a1a1a' }}
-            >
-              {n}
-              {n === 5 ? '+' : ''}
-            </span>
-          ))}
-          <span className="ml-2">· {monthTotal} за месяц</span>
-        </div>
-      )}
       {singleClient && clientBalance && (
         // Общая сводка по клиенту: оплачено всего + запланировано в будущем.
         <div className="mt-3 flex flex-wrap items-center justify-center gap-x-3 gap-y-0.5 text-[12px]">

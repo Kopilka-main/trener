@@ -16,7 +16,6 @@ import { CalendarPage } from './pages/CalendarPage';
 import { TrainerPage } from './pages/TrainerPage';
 import { TrainerEditPage } from './pages/TrainerEditPage';
 import { AccountingPage } from './pages/AccountingPage';
-import { GymsPage } from './pages/GymsPage';
 import { ChatListPage } from './pages/ChatListPage';
 import { ChatPage } from './pages/ChatPage';
 import { NotificationsPage } from './pages/NotificationsPage';
@@ -100,7 +99,6 @@ export function App() {
             <Route path={`${TRAINER_BASE}/profile`} element={<TrainerPage />} />
             <Route path={`${TRAINER_BASE}/profile/edit`} element={<TrainerEditPage />} />
             <Route path={`${TRAINER_BASE}/accounting`} element={<AccountingPage />} />
-            <Route path={`${TRAINER_BASE}/gyms`} element={<GymsPage />} />
             <Route path={`${TRAINER_BASE}/chat`} element={<ChatListPage />} />
             <Route path={`${TRAINER_BASE}/chat/:clientId`} element={<ChatPage />} />
             <Route path={`${TRAINER_BASE}/notifications`} element={<NotificationsPage />} />

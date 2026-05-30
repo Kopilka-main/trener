@@ -8,6 +8,7 @@ import { useConfirm } from '../components/ConfirmProvider';
 import { useClient, useClientBalance } from '../api/clients';
 import { useClientWorkouts } from '../api/client-workouts';
 import { useClientPackages, useCreatePackage, useDeletePackage } from '../api/packages';
+import { useCreateExpense } from '../api/expenses';
 import { useTrainerAlerts } from '../api/alerts';
 import { useClientStats, type ClientStats } from '../api/client-stats';
 import { calcAge, formatBirth } from '../lib/format';
@@ -123,6 +124,7 @@ export function ClientCardPage() {
         <Section title="Тренировки и оплата">
           <BalanceCard clientId={id} />
           <PackagesBlock clientId={id} />
+          <ExpenseBlock clientName={fullName(client.firstName, client.lastName)} />
         </Section>
 
         {contacts.length > 0 && (
@@ -318,6 +320,98 @@ function PackagesBlock({ clientId }: { clientId: string }) {
           <Plus size={15} /> Добавить пакет
         </button>
       )}
+    </div>
+  );
+}
+
+const EXPENSE_CATEGORIES = ['Аренда', 'Инвентарь', 'Обучение', 'Фарма', 'Прочее'];
+
+function ExpenseBlock({ clientName }: { clientName: string }) {
+  const [adding, setAdding] = useState(false);
+  return adding ? (
+    <ExpenseForm clientName={clientName} onClose={() => setAdding(false)} />
+  ) : (
+    <button
+      onClick={() => setAdding(true)}
+      className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-[var(--color-line)] py-3 text-[13px] font-medium text-[var(--color-ink-muted)]"
+    >
+      <Plus size={15} /> Добавить расход
+    </button>
+  );
+}
+
+function ExpenseForm({ clientName, onClose }: { clientName: string; onClose: () => void }) {
+  const createMut = useCreateExpense();
+  const [category, setCategory] = useState<string>('Прочее');
+  const [amount, setAmount] = useState('');
+  const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [note, setNote] = useState(`Для ${clientName}`);
+
+  const amountNum = Number(amount);
+
+  const submit = async () => {
+    if (!Number.isFinite(amountNum) || amountNum <= 0) {
+      alert('Укажите сумму расхода');
+      return;
+    }
+    if (!date) {
+      alert('Укажите дату');
+      return;
+    }
+    await createMut.mutateAsync({
+      category,
+      amount: amountNum,
+      date,
+      note: note.trim() || null,
+    });
+    onClose();
+  };
+
+  return (
+    <div className="rounded-2xl bg-[var(--color-card)] p-4 space-y-3">
+      <div className="flex items-center justify-between">
+        <h4 className="text-[14px] font-semibold">Новый расход</h4>
+        <button onClick={onClose} className="text-[12px] text-[var(--color-ink-muted)]">Отмена</button>
+      </div>
+      <Field label="Категория">
+        <div className="flex flex-wrap gap-1.5">
+          {EXPENSE_CATEGORIES.map((c) => {
+            const active = c === category;
+            return (
+              <button
+                key={c}
+                onClick={() => setCategory(c)}
+                className={`rounded-full px-3 py-1.5 text-[12px] font-medium ${active ? 'bg-[var(--color-accent)] text-[var(--color-accent-on)]' : 'bg-[var(--color-chip)]'}`}
+              >
+                {c}
+              </button>
+            );
+          })}
+        </div>
+      </Field>
+      <div className="grid grid-cols-2 gap-3">
+        <Field label="₽ сумма">
+          <TextInput inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0" />
+        </Field>
+        <Field label="Дата">
+          <input
+            type="date"
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+            className="w-full rounded-xl border border-[var(--color-line)] bg-[var(--color-card)] px-3 py-2 text-[14px] focus:border-[var(--color-line-strong)] focus:outline-none"
+          />
+        </Field>
+      </div>
+      <Field label="Примечание">
+        <TextArea value={note} onChange={(e) => setNote(e.target.value)} rows={2} />
+      </Field>
+      <button
+        onClick={submit}
+        disabled={createMut.isPending}
+        className="w-full rounded-2xl bg-[var(--color-accent)] py-3 text-[14px] font-semibold text-[var(--color-accent-on)] disabled:opacity-50"
+      >
+        {createMut.isPending ? 'Сохраняем…' : 'Сохранить'}
+      </button>
     </div>
   );
 }

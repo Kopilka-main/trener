@@ -5,9 +5,9 @@ export const DAY_FULL = ['Понедельник', 'Вторник', 'Среда
 export const MONTH_FULL = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
 export const MONTH_GEN = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
 
-// Окно времени календаря: 07:00–21:00.
-export const CAL_START_HOUR = 7;
-export const CAL_HOURS = 14;
+// Окно времени календаря: полные сутки 00:00–24:00.
+export const CAL_START_HOUR = 0;
+export const CAL_HOURS = 24;
 
 // Локальная ISO-дата YYYY-MM-DD.
 export function toISODate(d: Date): string {

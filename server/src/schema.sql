@@ -137,10 +137,22 @@ CREATE TABLE IF NOT EXISTS expenses (
   amount REAL NOT NULL,
   date TEXT NOT NULL,                      -- YYYY-MM-DD
   gym_id TEXT REFERENCES gyms(id) ON DELETE SET NULL,
+  client_id TEXT REFERENCES clients(id) ON DELETE SET NULL,  -- если расход «для клиента»
   note TEXT,
   created_at TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_expenses_date ON expenses(date);
+
+-- Абстрактные доходы (без привязки к клиенту): тренировка-разовая, фарма, и т.д.
+CREATE TABLE IF NOT EXISTS incomes (
+  id TEXT PRIMARY KEY,
+  category TEXT NOT NULL,                  -- 'тренировка' | 'фарма' | 'консультация' | 'прочее'
+  amount REAL NOT NULL,
+  date TEXT NOT NULL,                      -- YYYY-MM-DD
+  note TEXT,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_incomes_date ON incomes(date);
 
 -- Пакеты оплаченных тренировок клиента (план/факт считается на лету).
 CREATE TABLE IF NOT EXISTS payment_packages (

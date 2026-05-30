@@ -25,6 +25,12 @@ const totalIncomeStmt = db.prepare<[string, string], { total: number | null }>(`
     AND DATE(created_at) >= ? AND DATE(created_at) <= ?
 `);
 
+// Абстрактные доходы (без пакетов): отдельная сумма за период.
+const totalAbstractIncomeStmt = db.prepare<[string, string], { total: number | null }>(`
+  SELECT SUM(amount) AS total FROM incomes
+  WHERE date >= ? AND date <= ?
+`);
+
 const totalExpensesStmt = db.prepare<[string, string], { total: number | null }>(`
   SELECT SUM(amount) AS total FROM expenses
   WHERE date >= ? AND date <= ?
@@ -64,7 +70,9 @@ accountingRouter.get(
     const { from, to } = customFrom && customTo
       ? { from: customFrom, to: customTo }
       : rangeFor(month, rangeKind);
-    const income = totalIncomeStmt.get(from, to)?.total ?? 0;
+    const incomePackages = totalIncomeStmt.get(from, to)?.total ?? 0;
+    const incomeAbstract = totalAbstractIncomeStmt.get(from, to)?.total ?? 0;
+    const income = incomePackages + incomeAbstract;
     const expenses = totalExpensesStmt.get(from, to)?.total ?? 0;
     const byClient = incomeStmt.all(from, to);
     res.json({
@@ -92,12 +100,14 @@ type IncomeItemRow = {
   last_name: string;
   lessons_paid: number;
   total_paid: number;
+  workout_type: string | null;
   created_at: string;
   status: string;
 };
 
 const incomeListStmt = db.prepare<[string, string], IncomeItemRow>(`
-  SELECT p.id, p.client_id, c.first_name, c.last_name, p.lessons_paid, p.total_paid, p.created_at, p.status
+  SELECT p.id, p.client_id, c.first_name, c.last_name, p.lessons_paid, p.total_paid,
+         p.workout_type, p.created_at, p.status
   FROM payment_packages p
   JOIN clients c ON c.id = p.client_id
   WHERE p.status != 'cancelled'
@@ -118,6 +128,7 @@ accountingRouter.get(
         clientName: `${r.first_name} ${r.last_name}`,
         lessonsPaid: r.lessons_paid,
         totalPaid: r.total_paid,
+        workoutType: r.workout_type,
         createdAt: r.created_at,
         status: r.status,
       }))

@@ -9,6 +9,22 @@ export function useExpenses(from: string, to: string) {
   });
 }
 
+export function useClientExpenses(clientId: string | undefined) {
+  return useQuery({
+    queryKey: ['expenses', 'by-client', clientId ?? ''],
+    enabled: !!clientId,
+    queryFn: () => api.get<Expense[]>(`/api/expenses?clientId=${clientId}`),
+  });
+}
+
+export function useGymExpenses(gymId: string | undefined) {
+  return useQuery({
+    queryKey: ['expenses', 'by-gym', gymId ?? ''],
+    enabled: !!gymId,
+    queryFn: () => api.get<Expense[]>(`/api/expenses?gymId=${gymId}`),
+  });
+}
+
 export function useCreateExpense() {
   const qc = useQueryClient();
   return useMutation({

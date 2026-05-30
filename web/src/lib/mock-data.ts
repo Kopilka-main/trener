@@ -317,12 +317,14 @@ export const mockAccountingSummary: AccountingSummary = {
   ],
 };
 
+const WORKOUT_TYPES_FOR_INCOME = ['Силовая', 'Йога', 'Кардио', 'Реабилитация', null];
 export const mockIncomes: IncomeItem[] = mockClients.slice(0, 8).map((c, i) => ({
   id: `inc-${i + 1}`,
   clientId: c.id,
   clientName: `${c.firstName} ${c.lastName}`,
   lessonsPaid: 8 + (i % 6),
   totalPaid: (8 + (i % 6)) * 3000,
+  workoutType: WORKOUT_TYPES_FOR_INCOME[i % WORKOUT_TYPES_FOR_INCOME.length],
   createdAt: inDays(-((i % 20) + 1)) + 'T10:00:00Z',
   status: 'active',
 }));

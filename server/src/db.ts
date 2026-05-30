@@ -26,6 +26,7 @@ ensureColumn('clients', 'whatsapp', 'TEXT');
 ensureColumn('clients', 'instagram', 'TEXT');
 ensureColumn('clients', 'max', 'TEXT');
 ensureColumn('exercises', 'equipment', 'TEXT');
+ensureColumn('expenses', 'client_id', 'TEXT');
 
 export type ClientRow = {
   id: string;
@@ -160,6 +161,16 @@ export type ExpenseRow = {
   amount: number;
   date: string;
   gym_id: string | null;
+  client_id: string | null;
+  note: string | null;
+  created_at: string;
+};
+
+export type IncomeRow = {
+  id: string;
+  category: string;
+  amount: number;
+  date: string;
   note: string | null;
   created_at: string;
 };

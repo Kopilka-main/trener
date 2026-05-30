@@ -26,11 +26,17 @@ function diffShort(future: Date, now: Date): string {
   const ms = future.getTime() - now.getTime();
   if (ms <= 0) return 'СЕЙЧАС';
   const totalMin = Math.round(ms / 60000);
-  const h = Math.floor(totalMin / 60);
+  const totalH = Math.floor(totalMin / 60);
+  // Свыше суток — переключаемся на дни (и остаток в часах, если есть).
+  if (totalH >= 24) {
+    const d = Math.floor(totalH / 24);
+    const h = totalH % 24;
+    return h === 0 ? `${d}Д` : `${d}Д ${h}Ч`;
+  }
   const m = totalMin % 60;
-  if (h === 0) return `${m}М`;
-  if (m === 0) return `${h}Ч`;
-  return `${h}Ч ${m}М`;
+  if (totalH === 0) return `${m}М`;
+  if (m === 0) return `${totalH}Ч`;
+  return `${totalH}Ч ${m}М`;
 }
 
 type Metric = { v: string; s: string | string[] };
@@ -61,10 +67,12 @@ export function HomePage() {
   const clientsCount = clients?.length ?? 48;
   const exercisesCount = exercises?.length ?? 86;
 
-  const todaySessions = (sessions ?? []).filter((s) => s.date === today && s.status !== 'cancelled');
-  const todayCount = todaySessions.length || 6;
-  const weekPlanned = (sessions ?? []).filter((s) => s.status !== 'cancelled').length || 10;
-  const monthPlanned = (sessionsMonth ?? []).filter((s) => s.status !== 'cancelled').length || 32;
+  // Считаем все запланированные и проведённые сессии (включая отменённые) —
+  // ровно так же, как в CalendarPage subLabel (там нет фильтра по status).
+  const todaySessions = (sessions ?? []).filter((s) => s.date === today);
+  const todayCount = todaySessions.length;
+  const weekPlanned = (sessions ?? []).length;
+  const monthPlanned = (sessionsMonth ?? []).length;
 
   const nowMinutes = now.getHours() * 60 + now.getMinutes();
   const nextSession = (sessions ?? [])
@@ -179,7 +187,7 @@ export function HomePage() {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="relative flex flex-1 flex-col overflow-y-auto px-5 pb-7 pt-2">
+      <div className="relative flex flex-1 flex-col overflow-hidden px-5 pb-5 pt-2">
         {/* ─── Top bar: только дата слева ─── */}
         <div className="flex items-center gap-2 font-[family-name:var(--font-mono)] text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--color-ink-mutedXL)]">
           <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-[var(--color-accent)]" />
@@ -208,7 +216,11 @@ export function HomePage() {
 
         {/* ─── Hero: «СЕГОДНЯ» (большое число сессий) ─── */}
         <div className="px-1 pb-1 pt-3">
-          <div className="flex flex-wrap items-baseline gap-3">
+          <button
+            onClick={() => navigate('/trainer/calendar?view=day')}
+            className="flex flex-wrap items-baseline gap-3 text-left active:scale-[0.98] transition-transform"
+            aria-label="Открыть календарь на сегодня"
+          >
             <span
               className="font-[family-name:var(--font-display)] text-[64px] leading-none tracking-[-0.03em]"
               style={{ color: 'var(--color-accent-text)' }}
@@ -218,10 +230,14 @@ export function HomePage() {
             <span className="text-[22px] font-bold leading-tight tracking-[-0.01em]">
               {todayCount === 1 ? 'сессия в зале' : 'сессий в зале'}
             </span>
-          </div>
+          </button>
 
           {nextSession && nextSessionDate && (
-            <div className="mt-3 flex items-center gap-2.5">
+            <button
+              onClick={() => navigate(`/trainer/clients/${nextSession.clientId}`)}
+              aria-label={`Открыть карточку клиента ${nextSession.clientFirstName} ${nextSession.clientLastName}`}
+              className="mt-3 flex w-full items-center gap-2.5 text-left active:scale-[0.98] transition-transform"
+            >
               <div className="font-[family-name:var(--font-mono)] text-[11px] font-bold uppercase tracking-[0.06em] text-[var(--color-ink-muted)]">
                 СЛЕД. · {nextSession.startTime} {nextSession.clientFirstName.toUpperCase()} {nextSession.clientLastName.charAt(0).toUpperCase()}.
                 {nextSession.title ? ` · ${nextSession.title.toUpperCase()}` : ''}
@@ -229,23 +245,18 @@ export function HomePage() {
               <span className="inline-block rounded bg-[var(--color-accent)] px-1.5 py-0.5 font-[family-name:var(--font-mono)] text-[10px] font-bold tracking-[0.06em] text-[var(--color-accent-on)]">
                 {diffShort(nextSessionDate, now)}
               </span>
-              <button
-                onClick={() => navigate(`/trainer/clients/${nextSession.clientId}`)}
-                aria-label={`Открыть карточку клиента ${nextSession.clientFirstName} ${nextSession.clientLastName}`}
-                className="flex h-6 w-6 items-center justify-center rounded-full active:scale-90 transition-transform"
-              >
-                <ArrowRight
-                  size={18}
-                  strokeWidth={2.4}
-                  style={{ color: 'var(--color-accent)' }}
-                />
-              </button>
-            </div>
+              <ArrowRight
+                size={18}
+                strokeWidth={2.4}
+                style={{ color: 'var(--color-accent)' }}
+                className="shrink-0"
+              />
+            </button>
           )}
         </div>
 
-        {/* ─── Сетка 2×3 модулей, плитки квадратные ─── */}
-        <div className="mt-5 grid grid-cols-2 gap-2.5">
+        {/* ─── Сетка 2×3 модулей — занимает всё оставшееся пространство, ряды равной высоты ─── */}
+        <div className="mt-4 grid min-h-0 flex-1 grid-cols-2 grid-rows-3 gap-2.5">
           {tiles.map((tile, i) => {
             const { key, ...rest } = tile;
             // Фазовый сдвиг по позиции в сетке — каждая плитка стартует со своим
@@ -406,7 +417,7 @@ function Tile({ title, sub, metrics, Icon, onClick, isPrimary, metricColor, kick
     <button
       onClick={onClick}
       className={
-        'relative flex min-h-[220px] flex-col rounded-2xl px-3.5 pb-4 pt-3.5 text-left active:scale-[0.97] transition-transform ' +
+        'relative flex h-full min-h-[120px] flex-col rounded-2xl px-3.5 pb-4 pt-3.5 text-left active:scale-[0.97] transition-transform ' +
         (isPrimary
           ? 'bg-[var(--color-accent)] text-[var(--color-accent-on)]'
           : 'border border-[var(--color-line)] bg-[var(--color-card)]')
