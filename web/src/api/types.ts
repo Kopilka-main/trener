@@ -18,6 +18,8 @@ export type Client = {
   scheduleTime: string | null;
   currentTrainingType: string | null;
   accountId: string | null;
+  /** YYYY-MM-DD — дата, до которой действует онлайн-сопровождение. */
+  onlineUntil: string | null;
   createdAt: string;
 };
 

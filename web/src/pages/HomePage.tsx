@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, ArrowUpRight, Bell, BookOpen, CalendarDays, MessageSquare, UserCircle2, Users, Wallet } from 'lucide-react';
+import { ArrowRight, ArrowUpRight, Bell, BookOpen, CalendarDays, MessageSquare, Settings, Users, Wallet } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { FlapText } from '../components/FlapText';
 import { useTrainer } from '../api/trainer';
@@ -40,7 +40,7 @@ function diffShort(future: Date, now: Date): string {
 }
 
 type Metric = { v: string; s: string | string[] };
-type TileKey = 'clients' | 'calendar' | 'chat' | 'exercises' | 'finance' | 'profile';
+type TileKey = 'clients' | 'calendar' | 'chat' | 'exercises' | 'finance' | 'notifications';
 
 export function HomePage() {
   const navigate = useNavigate();
@@ -178,13 +178,14 @@ export function HomePage() {
       onClick: () => navigate('/trainer/accounting'),
     },
     {
-      key: 'profile',
-      title: trainerName,
-      sub: trainerTitle.toLowerCase(),
-      metrics: [],
-      kicker: 'ПРОФИЛЬ',
-      Icon: UserCircle2,
-      onClick: () => navigate('/trainer/profile'),
+      key: 'notifications',
+      title: 'Уведомления',
+      sub: alerts.length > 0 ? 'требуют внимания' : 'нет открытых задач',
+      metrics: alerts.length > 0 ? [{ v: pad2(alerts.length), s: 'новых' }] : [],
+      kicker: hasDangerAlert ? 'СРОЧНО' : alerts.length > 0 ? 'НОВЫЕ' : 'ВСЁ ТИХО',
+      Icon: Bell,
+      metricColor: alerts.length > 0 ? 'var(--color-accent)' : undefined,
+      onClick: () => navigate('/trainer/notifications'),
     },
   ];
 
@@ -192,29 +193,17 @@ export function HomePage() {
     <div className="flex h-full flex-col">
       <div className="relative flex flex-1 flex-col overflow-hidden px-5 pb-5 pt-2">
         {/* ─── Top bar: только дата слева ─── */}
-        <div className="flex items-center gap-2 font-[family-name:var(--font-mono)] text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--color-ink-mutedXL)]">
-          <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-[var(--color-accent)]" />
+        <div className="font-[family-name:var(--font-mono)] text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--color-ink-mutedXL)]">
           {dateLabel}
         </div>
 
-        {/* ─── Колокольчик уведомлений — справа, ниже даты, на уровне hero ─── */}
+        {/* ─── Шестерёнка-настройки → профиль тренера, на одной линии с датой ─── */}
         <button
-          onClick={() => navigate('/trainer/notifications')}
-          aria-label={`Уведомления (${alerts.length})`}
-          className="absolute right-5 top-16 z-10 flex items-center gap-1.5 active:scale-95 transition-transform"
+          onClick={() => navigate('/trainer/profile')}
+          aria-label="Профиль тренера"
+          className="absolute right-5 top-2 z-10 flex items-center justify-center active:scale-95 transition-transform"
         >
-          <Bell
-            size={22}
-            strokeWidth={2}
-            fill={alerts.length > 0 ? 'var(--color-accent)' : 'none'}
-            style={{ color: alerts.length > 0 ? 'var(--color-accent)' : 'var(--color-ink-mutedXL)' }}
-          />
-          <span
-            className="font-[family-name:var(--font-mono)] text-[15px] font-bold tabular-nums"
-            style={{ color: alerts.length > 0 ? 'var(--color-ink)' : 'var(--color-ink-mutedXL)' }}
-          >
-            {pad2(alerts.length)}
-          </span>
+          <Settings size={20} strokeWidth={1.8} className="text-[var(--color-ink-muted)]" />
         </button>
 
         {/* ─── Hero: «СЕГОДНЯ» (большое число сессий) ─── */}

@@ -30,6 +30,7 @@ const empty: ClientInput = {
   scheduleTime: null,
   currentTrainingType: null,
   accountId: null,
+  onlineUntil: null,
 };
 
 type Props = { mode: 'create' | 'edit' };

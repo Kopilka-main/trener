@@ -5,7 +5,7 @@ import { ScreenHeader } from '../components/ScreenHeader';
 import { Avatar } from '../components/Avatar';
 import { Field, TextArea, TextInput } from '../components/Field';
 import { useConfirm } from '../components/ConfirmProvider';
-import { useClient, useClientBalance } from '../api/clients';
+import { useClient, useClientBalance, useUpdateClient } from '../api/clients';
 import { useClientWorkouts } from '../api/client-workouts';
 import { useSessions } from '../api/sessions';
 import { useChatUnread } from '../api/chat';
@@ -37,7 +37,7 @@ export function ClientCardPage() {
     const since = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
     const newPRs = stats.records.filter((r) => r.date && r.date >= since).length;
     if (newPRs === 0) return undefined;
-    return `+${pad2num(newPRs)}`;
+    return pad2num(newPRs);
   })();
 
   // Запланированные тренировки клиента: текущий месяц — для плитки "Календарь";
@@ -147,7 +147,7 @@ export function ClientCardPage() {
             aria-label="Открыть занятие в календаре"
           >
             <div className="font-[family-name:var(--font-mono)] text-[11px] font-bold uppercase tracking-[0.06em] text-[var(--color-ink-muted)]">
-              СЛЕД. {formatDayShort(nextSession.date)} · {nextSession.startTime} · {sessionStageLabel(nextSession)}
+              СЛЕД. {dayLabelForKicker(nextSession.date, today)} · {nextSession.startTime} · {sessionStageLabel(nextSession)}
             </div>
             <span className="inline-block rounded bg-[var(--color-accent)] px-1.5 py-0.5 font-[family-name:var(--font-mono)] text-[10px] font-bold tracking-[0.06em] text-[var(--color-accent-on)]">
               {diffShort(nextSessionDate, now)}
@@ -213,6 +213,11 @@ export function ClientCardPage() {
                 : undefined
             }
             metricTone={balance && balance.remaining > 0 ? 'success' : undefined}
+            metricFooter={
+              client.onlineUntil && client.onlineUntil >= today
+                ? `онлайн до ${formatDayShort(client.onlineUntil)}`
+                : undefined
+            }
             onClick={() => navigate(`/trainer/clients/${id}/payment`)}
           />
           <ClientNavTile
@@ -257,6 +262,7 @@ function ClientNavTile({
   metric,
   metricTone,
   metricIcon: MetricIcon,
+  metricFooter,
   stats,
   primary,
 }: {
@@ -268,6 +274,8 @@ function ClientNavTile({
   metric?: string;
   metricTone?: 'success' | 'danger';
   metricIcon?: typeof CalendarDays;
+  /** Маленькая подпись под метрикой — например «онлайн до 31/06». */
+  metricFooter?: string;
   stats?: Array<{ value: string; label: string; tone?: 'success' | 'danger' }>;
   primary?: boolean;
 }) {
@@ -298,7 +306,7 @@ function ClientNavTile({
             {stats!.map((s, i) => (
               <div key={i} className="flex items-baseline gap-1.5">
                 <span
-                  className="font-[family-name:var(--font-display)] text-[20px] leading-none tracking-[-0.02em] tabular-nums"
+                  className="font-[family-name:var(--font-display)] text-[22px] leading-none tracking-[-0.02em] tabular-nums"
                   style={{
                     color:
                       s.tone === 'success'
@@ -318,29 +326,50 @@ function ClientNavTile({
           </div>
         )}
         {hasMetric && !hasStats && (
-          metric!.includes('/')
-            ? (() => {
-                const [base, accent] = metric!.split('/');
-                return (
-                  <span className="flex items-center gap-1.5 font-[family-name:var(--font-display)] text-[28px] leading-none tracking-[-0.02em] tabular-nums">
-                    <span>{base}</span>
-                    <span className="opacity-40">/</span>
-                    <span style={metricColor ? { color: metricColor } : undefined}>{accent}</span>
-                    {MetricIcon && <MetricIcon size={24} strokeWidth={1.8} style={{ color: 'var(--color-accent)' }} />}
+          <div className="flex flex-col items-end gap-0.5">
+            {metric!.includes('/')
+              ? (() => {
+                  const [base, accent] = metric!.split('/');
+                  // Типографическая дробь: числитель приподнят, знаменатель опущен,
+                  // слэш заметно крупнее и под наклоном — почти как «¾» в книге.
+                  return (
+                    <span className="flex items-center font-[family-name:var(--font-display)] tabular-nums leading-none tracking-[-0.02em]">
+                      <span className="text-[22px] -translate-y-[6px]">{base}</span>
+                      <span
+                        aria-hidden
+                        className="text-[40px] opacity-45 mx-[-2px]"
+                        style={{ transform: 'rotate(8deg)' }}
+                      >
+                        /
+                      </span>
+                      <span
+                        className="text-[22px] translate-y-[6px]"
+                        style={metricColor ? { color: metricColor } : undefined}
+                      >
+                        {accent}
+                      </span>
+                      {MetricIcon && <MetricIcon size={22} strokeWidth={1.8} style={{ color: 'var(--color-accent)' }} className="ml-1.5" />}
+                    </span>
+                  );
+                })()
+              : (
+                <span className="flex items-center gap-1.5">
+                  <span
+                    className="font-[family-name:var(--font-display)] text-[22px] leading-none tracking-[-0.02em] tabular-nums"
+                    style={metricColor ? { color: metricColor } : undefined}
+                  >
+                    {metric}
                   </span>
-                );
-              })()
-            : (
-              <span className="flex items-center gap-1.5">
-                <span
-                  className="font-[family-name:var(--font-display)] text-[28px] leading-none tracking-[-0.02em] tabular-nums"
-                  style={metricColor ? { color: metricColor } : undefined}
-                >
-                  {metric}
+                  {MetricIcon && <MetricIcon size={22} strokeWidth={1.8} style={{ color: 'var(--color-accent)' }} />}
                 </span>
-                {MetricIcon && <MetricIcon size={24} strokeWidth={1.8} style={{ color: 'var(--color-accent)' }} />}
+              )
+            }
+            {metricFooter && (
+              <span className="font-[family-name:var(--font-mono)] text-[9px] font-bold uppercase tracking-[0.06em] text-[var(--color-ink-mutedXL)]">
+                {metricFooter}
               </span>
-            )
+            )}
+          </div>
         )}
       </div>
       {indicator && (
@@ -362,6 +391,16 @@ function pad2num(n: number) {
 function formatDayShort(iso: string): string {
   const [, m, d] = iso.split('-').map(Number);
   return `${String(d).padStart(2, '0')}/${String(m).padStart(2, '0')}`;
+}
+
+// Подпись даты в kicker-строке: СЕГОДНЯ / ЗАВТРА / 31/05.
+function dayLabelForKicker(iso: string, today: string): string {
+  if (iso === today) return 'СЕГОДНЯ';
+  const [y, m, d] = today.split('-').map(Number);
+  const tomorrow = new Date(y, m - 1, d + 1);
+  const tomorrowIso = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, '0')}-${String(tomorrow.getDate()).padStart(2, '0')}`;
+  if (iso === tomorrowIso) return 'ЗАВТРА';
+  return formatDayShort(iso);
 }
 
 // Текстовый статус согласования занятия для отображения в kicker-строке.
@@ -522,6 +561,8 @@ type IncomeKind = 'package' | 'online' | 'inventory' | 'pharma' | 'other';
 function IncomeForm({ clientId, onClose }: { clientId: string; onClose: () => void }) {
   const createPackage = useCreatePackage(clientId);
   const createIncome = useCreateIncomeRecord();
+  const updateClient = useUpdateClient(clientId);
+  const { data: client } = useClient(clientId);
   const [kind, setKind] = useState<IncomeKind>('package');
 
   return (
@@ -551,6 +592,33 @@ function IncomeForm({ clientId, onClose }: { clientId: string; onClose: () => vo
               date: from,
               note: `Онлайн ${formatRuShort(from)}–${formatRuShort(to)}`,
             });
+            // Запоминаем дату окончания подписки в клиенте — она отобразится
+            // мелким шрифтом под балансом в плитке «Оплата».
+            if (client) {
+              const prevUntil = client.onlineUntil ?? '';
+              const nextUntil = to > prevUntil ? to : prevUntil;
+              await updateClient.mutateAsync({
+                firstName: client.firstName,
+                lastName: client.lastName,
+                birthDate: client.birthDate ?? null,
+                heightCm: client.heightCm ?? null,
+                weightKg: client.weightKg ?? null,
+                phone: client.phone ?? null,
+                telegram: client.telegram ?? null,
+                whatsapp: client.whatsapp ?? null,
+                instagram: client.instagram ?? null,
+                max: client.max ?? null,
+                hashtags: client.hashtags ?? null,
+                notes: client.notes ?? null,
+                medicalNotes: client.medicalNotes ?? null,
+                restingPulse: client.restingPulse ?? null,
+                scheduleDay: client.scheduleDay ?? null,
+                scheduleTime: client.scheduleTime ?? null,
+                currentTrainingType: client.currentTrainingType ?? null,
+                accountId: client.accountId ?? null,
+                onlineUntil: nextUntil,
+              });
+            }
             onClose();
           }}
           pending={createIncome.isPending}

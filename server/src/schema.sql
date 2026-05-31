@@ -22,6 +22,7 @@ CREATE TABLE IF NOT EXISTS clients (
   schedule_time TEXT,
   current_training_type TEXT,
   account_id TEXT,
+  online_until TEXT,                                  -- дата окончания онлайн-сопровождения YYYY-MM-DD
   created_at TEXT NOT NULL
 );
 

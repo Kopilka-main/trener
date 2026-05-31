@@ -166,6 +166,7 @@ function NoteRow({
       scheduleTime: client.scheduleTime ?? null,
       currentTrainingType: client.currentTrainingType ?? null,
       accountId: client.accountId ?? null,
+      onlineUntil: client.onlineUntil ?? null,
     });
   };
 
@@ -353,6 +354,7 @@ function NoteForm({ clientId, onClose }: { clientId: string; onClose: () => void
       scheduleTime: client.scheduleTime ?? null,
       currentTrainingType: client.currentTrainingType ?? null,
       accountId: client.accountId ?? null,
+      onlineUntil: client.onlineUntil ?? null,
     });
     onClose();
   };

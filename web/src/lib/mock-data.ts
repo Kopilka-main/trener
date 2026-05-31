@@ -78,6 +78,7 @@ export const mockClients: Client[] = Array.from({ length: 48 }, (_, i) => {
     scheduleTime: ['08:00', '10:00', '12:00', '14:00', '16:00', '18:00', '20:00'][i % 7],
     currentTrainingType: ['Сила', 'Низ', 'Верх', 'Кардио', 'Кор'][i % 5],
     accountId: null,
+    onlineUntil: i % 4 === 0 ? inDays(30 + (i % 30)) : null,
     createdAt: inDays(-((i % 60) + 1)) + 'T10:00:00Z',
   };
 });

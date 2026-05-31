@@ -36,6 +36,7 @@ ensureColumn('sessions', 'is_online', "INTEGER NOT NULL DEFAULT 0");
 // Для апгрейда со старой версии (колонка уже добавлялась с дефолтом 0)
 // одноразово выставляем 1, чтобы кнопка «Онлайн» появилась в форме занятия.
 const addedWorksOnline = ensureColumn('trainer', 'works_online', 'INTEGER NOT NULL DEFAULT 1');
+ensureColumn('clients', 'online_until', 'TEXT');
 if (addedWorksOnline) {
   db.exec(`UPDATE trainer SET works_online = 1`);
 } else {
@@ -67,6 +68,7 @@ export type ClientRow = {
   schedule_time: string | null;
   current_training_type: string | null;
   account_id: string | null;
+  online_until: string | null;
   created_at: string;
 };
 

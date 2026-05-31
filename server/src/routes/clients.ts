@@ -25,6 +25,7 @@ const clientInput = z.object({
   scheduleTime: z.string().regex(/^\d{2}:\d{2}$/).nullish(),
   currentTrainingType: z.string().max(80).nullish(),
   accountId: z.string().max(40).nullish(),
+  onlineUntil: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullish(),
 });
 
 type ClientInput = z.infer<typeof clientInput>;
@@ -50,6 +51,7 @@ function toApi(row: ClientRow) {
     scheduleTime: row.schedule_time,
     currentTrainingType: row.current_training_type,
     accountId: row.account_id,
+    onlineUntil: row.online_until,
     createdAt: row.created_at,
   };
 }
@@ -59,12 +61,12 @@ const insertStmt = db.prepare(`
     id, first_name, last_name, birth_date, height_cm, weight_kg,
     phone, telegram, whatsapp, instagram, max,
     hashtags, notes, medical_notes, resting_pulse,
-    schedule_day, schedule_time, current_training_type, account_id, created_at
+    schedule_day, schedule_time, current_training_type, account_id, online_until, created_at
   ) VALUES (
     @id, @first_name, @last_name, @birth_date, @height_cm, @weight_kg,
     @phone, @telegram, @whatsapp, @instagram, @max,
     @hashtags, @notes, @medical_notes, @resting_pulse,
-    @schedule_day, @schedule_time, @current_training_type, @account_id, @created_at
+    @schedule_day, @schedule_time, @current_training_type, @account_id, @online_until, @created_at
   )
 `);
 
@@ -87,7 +89,8 @@ const updateStmt = db.prepare(`
     schedule_day = @schedule_day,
     schedule_time = @schedule_time,
     current_training_type = @current_training_type,
-    account_id = @account_id
+    account_id = @account_id,
+    online_until = @online_until
   WHERE id = @id
 `);
 
@@ -116,6 +119,7 @@ function toRowParams(input: ClientInput, id: string, createdAt: string) {
     schedule_time: input.scheduleTime ?? null,
     current_training_type: input.currentTrainingType ?? null,
     account_id: input.accountId ?? null,
+    online_until: input.onlineUntil ?? null,
     created_at: createdAt,
   };
 }
