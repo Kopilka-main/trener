@@ -10,6 +10,11 @@ import {
   mockWorkoutTemplates,
   mockBalance,
   mockPackagesFor,
+  mockClientStats,
+  mockClientExerciseOverview,
+  mockClientExerciseHistory,
+  mockClientMeasurements,
+  mockClientProgressPhotos,
 } from '../lib/mock-data';
 
 export type ApiError = { error: string; details?: unknown; status: number };
@@ -151,6 +156,18 @@ function mockResponse(method: string, fullPath: string): unknown | undefined {
     const cwMatch = path.match(/^\/api\/clients\/([^/]+)\/workouts$/);
     if (cwMatch) return { current: null, history: [] };
     if (path === '/api/clients/stats') return mockClients.map((c) => ({ clientId: c.id, totalWorkouts: 4 + (parseInt(c.id.replace('c', ''), 10) || 0) % 12, lastWorkoutAt: null }));
+
+    // ─── Статистика клиента: упражнения / замеры / фото ────────────────────
+    const statsMatch = path.match(/^\/api\/clients\/([^/]+)\/stats$/);
+    if (statsMatch) return mockClientStats(statsMatch[1]);
+    const statsExListMatch = path.match(/^\/api\/clients\/([^/]+)\/stats\/exercises$/);
+    if (statsExListMatch) return mockClientExerciseOverview(statsExListMatch[1]);
+    const statsExHistMatch = path.match(/^\/api\/clients\/([^/]+)\/stats\/exercises\/([^/]+)\/history$/);
+    if (statsExHistMatch) return mockClientExerciseHistory(statsExHistMatch[1], statsExHistMatch[2]);
+    const measurementsMatch = path.match(/^\/api\/clients\/([^/]+)\/measurements$/);
+    if (measurementsMatch) return mockClientMeasurements(measurementsMatch[1]);
+    const photosMatch = path.match(/^\/api\/clients\/([^/]+)\/progress-photos$/);
+    if (photosMatch) return mockClientProgressPhotos(photosMatch[1]);
   }
   // мутации — заглушки (возвращаем то, что пришло, с фейковым id)
   if (method === 'POST' || method === 'PUT' || method === 'PATCH') {

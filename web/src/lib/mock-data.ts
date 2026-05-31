@@ -388,6 +388,270 @@ export function mockBalance(clientId: string): ClientBalance {
   };
 }
 
+// ─── Статистика клиента: тренировки, замеры, фото ───────────────────────────
+// Все генераторы детерминированы по clientId (хэш) — у одного клиента всегда
+// одинаковые данные между вызовами.
+
+function seedFromId(clientId: string): number {
+  let h = 0;
+  for (let i = 0; i < clientId.length; i++) h = (h * 31 + clientId.charCodeAt(i)) >>> 0;
+  return h;
+}
+
+function seededRng(seed: number): () => number {
+  let s = seed || 1;
+  return () => {
+    s = (s * 9301 + 49297) % 233280;
+    return s / 233280;
+  };
+}
+
+// «Скелет» библиотеки упражнений для статистики (по нему генерим historу).
+const STAT_EXERCISES: Array<{
+  id: string;
+  name: string;
+  category: string;
+  isTimeBased: boolean;
+  baseWeight?: number;   // kg для weight-based, sec для time-based
+  baseReps?: number;
+}> = [
+  { id: 'ex-stat-squat', name: 'Приседания со штангой', category: 'Ноги', isTimeBased: false, baseWeight: 80, baseReps: 6 },
+  { id: 'ex-stat-bench', name: 'Жим штанги лёжа', category: 'Грудь', isTimeBased: false, baseWeight: 70, baseReps: 8 },
+  { id: 'ex-stat-deadlift', name: 'Становая тяга', category: 'Спина', isTimeBased: false, baseWeight: 110, baseReps: 5 },
+  { id: 'ex-stat-row', name: 'Тяга штанги в наклоне', category: 'Спина', isTimeBased: false, baseWeight: 55, baseReps: 8 },
+  { id: 'ex-stat-pullup', name: 'Подтягивания', category: 'Спина', isTimeBased: false, baseWeight: 0, baseReps: 10 },
+  { id: 'ex-stat-bicep', name: 'Подъём гантелей на бицепс', category: 'Руки', isTimeBased: false, baseWeight: 14, baseReps: 10 },
+  { id: 'ex-stat-leg-press', name: 'Жим ногами', category: 'Ноги', isTimeBased: false, baseWeight: 180, baseReps: 8 },
+  { id: 'ex-stat-plank', name: 'Планка', category: 'Кор', isTimeBased: true, baseWeight: 60 }, // baseWeight = sec
+  { id: 'ex-stat-stretch-quad', name: 'Растяжка квадрицепса', category: 'Растяжка', isTimeBased: true, baseWeight: 30 },
+];
+
+// Сколько упражнений видно на странице статистики для клиента (3–8).
+function statsExercisesCount(seed: number): number {
+  return 3 + Math.floor((seed % 6) + 1);
+}
+
+function isoDayOffset(daysAgo: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() - daysAgo);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+function isoTimestampOffset(daysAgo: number, hour = 10): string {
+  const d = new Date();
+  d.setDate(d.getDate() - daysAgo);
+  d.setHours(hour, 0, 0, 0);
+  return d.toISOString();
+}
+
+// Объект-агрегат за всё время по упражнению (без подробного timeline).
+export type StatExerciseOverview = {
+  exerciseId: string;
+  name: string;
+  category: string | null;
+  times: number;
+  maxWeightKg: number | null;
+  tonnage: number;
+  maxTimeSec: number | null;
+  totalTimeSec: number;
+  isTimeBased: boolean;
+  lastDate: string | null;
+  lastIsRecord: boolean;
+};
+
+export function mockClientExerciseOverview(clientId: string): StatExerciseOverview[] {
+  const seed = seedFromId(clientId);
+  const rng = seededRng(seed);
+  const count = statsExercisesCount(seed);
+  const pool = [...STAT_EXERCISES].sort(() => rng() - 0.5).slice(0, count);
+  return pool.map((ex, i) => {
+    const times = 4 + Math.floor(rng() * 12);
+    const lastDaysAgo = i === 0 ? 0 : Math.floor(rng() * 30);
+    if (ex.isTimeBased) {
+      const maxTime = (ex.baseWeight ?? 30) + Math.floor(rng() * 30);
+      const totalTime = maxTime * times;
+      return {
+        exerciseId: ex.id,
+        name: ex.name,
+        category: ex.category,
+        times,
+        maxWeightKg: null,
+        tonnage: 0,
+        maxTimeSec: maxTime,
+        totalTimeSec: totalTime,
+        isTimeBased: true,
+        lastDate: isoTimestampOffset(lastDaysAgo, 10),
+        lastIsRecord: rng() > 0.4,
+      };
+    }
+    const maxWeight = (ex.baseWeight ?? 50) + Math.floor(rng() * 20);
+    const totalReps = (ex.baseReps ?? 8) * times * (2 + Math.floor(rng() * 3));
+    const tonnage = Math.round(maxWeight * 0.8 * totalReps);
+    return {
+      exerciseId: ex.id,
+      name: ex.name,
+      category: ex.category,
+      times,
+      maxWeightKg: maxWeight,
+      tonnage,
+      maxTimeSec: null,
+      totalTimeSec: 0,
+      isTimeBased: false,
+      lastDate: isoTimestampOffset(lastDaysAgo, 10),
+      lastIsRecord: rng() > 0.5,
+    };
+  });
+}
+
+export function mockClientExerciseHistory(clientId: string, exerciseId: string) {
+  const seed = seedFromId(clientId + exerciseId);
+  const rng = seededRng(seed);
+  const ex = STAT_EXERCISES.find((e) => e.id === exerciseId) ?? STAT_EXERCISES[0];
+  const sessions = 5 + Math.floor(rng() * 8);
+  // Прогресс плавно растёт от базы до текущего max за `sessions` точек.
+  const target = (ex.baseWeight ?? 50) + Math.floor(rng() * 25);
+  const start = Math.round((ex.baseWeight ?? 50) * 0.75);
+  const points = Array.from({ length: sessions }, (_, i) => {
+    const t = i / Math.max(1, sessions - 1);
+    const value = start + (target - start) * t + (rng() - 0.5) * 4;
+    const daysAgo = (sessions - 1 - i) * (3 + Math.floor(rng() * 4));
+    const reps = (ex.baseReps ?? 8) + Math.floor(rng() * 4);
+    const setsCount = 3 + Math.floor(rng() * 3);
+    if (ex.isTimeBased) {
+      const sec = Math.round(value);
+      return {
+        workoutId: `w-${clientId}-${exerciseId}-${i}`,
+        date: isoTimestampOffset(daysAgo, 10),
+        tonnage: 0,
+        maxWeightKg: null,
+        bestReps: null,
+        totalSets: setsCount,
+        maxTimeSec: sec,
+        totalTimeSec: sec * setsCount,
+      };
+    }
+    const weight = Math.round(value);
+    return {
+      workoutId: `w-${clientId}-${exerciseId}-${i}`,
+      date: isoTimestampOffset(daysAgo, 10),
+      tonnage: Math.round(weight * reps * setsCount),
+      maxWeightKg: weight,
+      bestReps: reps,
+      totalSets: setsCount,
+      maxTimeSec: null,
+      totalTimeSec: 0,
+    };
+  });
+  return {
+    exercise: { id: ex.id, name: ex.name, category: ex.category },
+    isTimeBased: ex.isTimeBased,
+    points,
+  };
+}
+
+// Старый формат статистики (useClientStats) — total/avgPerWeek/records/totals.
+export function mockClientStats(clientId: string) {
+  const overview = mockClientExerciseOverview(clientId);
+  const total = overview.reduce((s, e) => s + e.times, 0);
+  const records = overview
+    .filter((e) => !e.isTimeBased && e.maxWeightKg !== null)
+    .slice(0, 5)
+    .map((e) => ({
+      exerciseName: e.name,
+      weightKg: e.maxWeightKg!,
+      reps: 6 + Math.floor(seedFromId(e.exerciseId) % 5),
+      date: e.lastDate,
+    }));
+  // 6 месяцев тоннажа по убыванию даты.
+  const totals = Array.from({ length: 6 }, (_, i) => {
+    const d = new Date();
+    d.setMonth(d.getMonth() - (5 - i));
+    const month = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    const seed = seedFromId(clientId + month);
+    return { month, tonnage: 12000 + Math.floor((seed % 18000)) };
+  });
+  // Frequency — 12 недель посещаемости.
+  const frequency = Array.from({ length: 12 }, (_, i) => {
+    const seed = seedFromId(clientId + `wk${i}`);
+    return { week: `W${i + 1}`, count: 1 + (seed % 4) };
+  });
+  return {
+    total,
+    avgPerWeek: 2.5 + ((seedFromId(clientId) % 10) / 10),
+    frequency,
+    records,
+    totals,
+  };
+}
+
+// Замеры тела: 4–6 точек за полгода с плавной динамикой.
+export function mockClientMeasurements(clientId: string) {
+  const seed = seedFromId(clientId);
+  const rng = seededRng(seed);
+  const count = 4 + Math.floor(rng() * 3);
+  const baseWeight = 65 + Math.floor(rng() * 20);
+  const baseFat = 18 + Math.floor(rng() * 8);
+  const baseWaist = 78 + Math.floor(rng() * 8);
+  return Array.from({ length: count }, (_, i) => {
+    const daysAgo = (count - 1 - i) * 30; // каждый ~ месяц
+    const t = i / Math.max(1, count - 1);
+    return {
+      id: `m-${clientId}-${i}`,
+      clientId,
+      date: isoDayOffset(daysAgo),
+      weightKg: Math.round((baseWeight - t * 4) * 10) / 10,
+      bodyFatPct: Math.round((baseFat - t * 3) * 10) / 10,
+      musclePct: Math.round((38 + t * 2) * 10) / 10,
+      waterPct: Math.round((58 + (rng() - 0.5) * 1) * 10) / 10,
+      chestCm: Math.round((96 + (rng() - 0.5) * 3) * 10) / 10,
+      shouldersCm: Math.round((110 + (rng() - 0.5) * 3) * 10) / 10,
+      waistCm: Math.round((baseWaist - t * 3) * 10) / 10,
+      hipsCm: Math.round((98 + (rng() - 0.5) * 2) * 10) / 10,
+      bicepsLCm: Math.round((34 + t * 1.5) * 10) / 10,
+      bicepsRCm: Math.round((34 + t * 1.6) * 10) / 10,
+      thighLCm: Math.round((58 + t * 1) * 10) / 10,
+      thighRCm: Math.round((58 + t * 1) * 10) / 10,
+      calfLCm: Math.round((38 + t * 0.5) * 10) / 10,
+      calfRCm: Math.round((38 + t * 0.5) * 10) / 10,
+      neckCm: Math.round((36 + (rng() - 0.5) * 1) * 10) / 10,
+      note: i === count - 1 ? 'утро натощак, после кардио' : null,
+      createdAt: isoTimestampOffset(daysAgo, 9),
+    };
+  }).reverse(); // новые сверху (как ожидает фронт)
+}
+
+// Фото прогресса: используем picsum плейсхолдеры. По 3 ракурса на 2–3 даты.
+export function mockClientProgressPhotos(clientId: string) {
+  const seed = seedFromId(clientId);
+  const rng = seededRng(seed);
+  const dates = [60, 30, 0]; // 3 контрольные точки
+  const angles: Array<'front' | 'side' | 'back'> = ['front', 'side', 'back'];
+  const items: Array<{
+    id: string;
+    clientId: string;
+    date: string;
+    angle: 'front' | 'side' | 'back';
+    url: string;
+    note: string | null;
+    createdAt: string;
+  }> = [];
+  dates.forEach((daysAgo, di) => {
+    angles.forEach((angle, ai) => {
+      const picId = (Math.floor(rng() * 900) + 100) + di * 10 + ai;
+      items.push({
+        id: `ph-${clientId}-${di}-${ai}`,
+        clientId,
+        date: isoDayOffset(daysAgo),
+        angle,
+        url: `https://picsum.photos/seed/${clientId}-${di}-${ai}-${picId}/400/400`,
+        note: null,
+        createdAt: isoTimestampOffset(daysAgo, 9),
+      });
+    });
+  });
+  return items;
+}
+
 export function mockPackagesFor(clientId: string): PaymentPackage[] {
   return [
     {
