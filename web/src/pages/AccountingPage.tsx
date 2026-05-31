@@ -14,6 +14,15 @@ type Tab = 'summary' | 'income' | 'expenses';
 
 const EXPENSE_CATEGORIES = ['Аренда', 'Инвентарь', 'Обучение', 'Фарма', 'Прочее'];
 
+// ─── Единые стили дизайн-системы (acid flow) ───────────────────────────────
+// Чтобы не плодить разные стили date-инпута, селекта и чипов — собираем здесь.
+const FIELD_INPUT_CLS =
+  'w-full rounded-2xl bg-[var(--color-chip)] px-4 py-3 text-[14px] outline-none focus:ring-2 focus:ring-ink/10';
+const KICKER_CLS =
+  'font-[family-name:var(--font-mono)] text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--color-ink-mutedXL)]';
+const NUM_DISPLAY_CLS =
+  'font-[family-name:var(--font-display)] tabular-nums leading-none tracking-[-0.02em]';
+
 export function AccountingPage() {
   const today = new Date().toISOString().slice(0, 10);
   const [month, setMonth] = useState(() => new Date().toISOString().slice(0, 7));
@@ -350,31 +359,38 @@ function SummaryTab({
 }) {
   const { data: summary } = useAccountingSummary(month, range, customFrom, customTo);
   if (!summary) return <div className="text-center text-[13px] text-[var(--color-ink-muted)]">Загрузка…</div>;
-  const profitColor = summary.profit >= 0 ? 'var(--color-success)' : 'var(--color-danger)';
+  const profitPositive = summary.profit >= 0;
   return (
     <div className="space-y-3">
-      <div className="rounded-2xl bg-[var(--color-card)] p-4 space-y-3">
-        <SummaryRow label="Доходы" value={summary.income} color="var(--color-success)" />
-        <SummaryRow label="Расходы" value={-summary.expenses} color="var(--color-danger)" />
-        <div className="border-t border-[var(--color-line)] pt-3">
-          <SummaryRow label="Прибыль" value={summary.profit} color={profitColor} bold />
+      {/* Большая прибыль — главный показатель периода, в display-шрифте. */}
+      <div className="rounded-2xl bg-[var(--color-card)] p-4 space-y-1">
+        <div className={KICKER_CLS}>Прибыль</div>
+        <div
+          className={NUM_DISPLAY_CLS + ' text-[40px]'}
+          style={{ color: profitPositive ? 'var(--color-accent)' : 'var(--color-coral)' }}
+        >
+          {profitPositive ? '' : '−'}{formatMoney(Math.abs(summary.profit))}
         </div>
       </div>
+      <div className="grid grid-cols-2 gap-2">
+        <SummaryStat kicker="Доходы" value={summary.income} sign="+" tone="positive" />
+        <SummaryStat kicker="Расходы" value={summary.expenses} sign="−" tone="neutral" />
+      </div>
       <div className="rounded-2xl bg-[var(--color-card)] p-4">
-        <div className="text-[11px] font-semibold uppercase tracking-wider text-[var(--color-ink-muted)]">
-          Топ клиентов
-        </div>
+        <div className={KICKER_CLS}>Топ клиентов</div>
         {summary.topClients.length === 0 ? (
           <div className="py-3 text-center text-[13px] text-[var(--color-ink-muted)]">Нет платежей за период</div>
         ) : (
-          <ul className="mt-2 space-y-1.5">
+          <ul className="mt-2.5 space-y-2">
             {summary.topClients.map((c, i) => (
-              <li key={c.clientId} className="flex items-center gap-2 text-[14px]">
-                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-chip)] text-[12px] font-bold">
+              <li key={c.clientId} className="flex items-center gap-2.5 text-[14px]">
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-chip)] font-[family-name:var(--font-mono)] text-[11px] font-bold tabular-nums">
                   {i + 1}
                 </span>
                 <span className="min-w-0 flex-1 truncate">{c.clientName}</span>
-                <span className="shrink-0 font-semibold tabular-nums">{formatMoney(c.total)}</span>
+                <span className="shrink-0 font-[family-name:var(--font-mono)] text-[13px] font-bold tabular-nums">
+                  {formatMoney(c.total)}
+                </span>
               </li>
             ))}
           </ul>
@@ -384,13 +400,22 @@ function SummaryTab({
   );
 }
 
-function SummaryRow({ label, value, color, bold }: { label: string; value: number; color: string; bold?: boolean }) {
+function SummaryStat({
+  kicker,
+  value,
+  sign,
+  tone,
+}: { kicker: string; value: number; sign: '+' | '−'; tone: 'positive' | 'neutral' }) {
+  const color = tone === 'positive' ? 'var(--color-accent)' : 'var(--color-ink)';
   return (
-    <div className="flex items-baseline justify-between">
-      <span className={`text-[14px] ${bold ? 'font-bold' : 'text-[var(--color-ink-muted)]'}`}>{label}</span>
-      <span className={`tabular-nums ${bold ? 'text-[22px] font-bold' : 'text-[16px] font-semibold'}`} style={{ color }}>
-        {value >= 0 ? formatMoney(value) : `−${formatMoney(Math.abs(value))}`}
-      </span>
+    <div className="rounded-2xl bg-[var(--color-card)] p-3">
+      <div className={KICKER_CLS}>{kicker}</div>
+      <div
+        className={NUM_DISPLAY_CLS + ' mt-1 text-[22px]'}
+        style={{ color }}
+      >
+        {sign}{formatMoney(value)}
+      </div>
     </div>
   );
 }
@@ -436,11 +461,11 @@ function IncomeTab({ from, to }: { from: string; to: string }) {
         </div>
       )}
 
-      <div className="rounded-2xl bg-[var(--color-card)] p-3 text-center">
-        <div className="text-[12px] text-[var(--color-ink-muted)]">
-          {filter ? `${filter} за период` : 'Всего за период'}
+      <div className="rounded-2xl bg-[var(--color-card)] p-4">
+        <div className={KICKER_CLS}>{filter ? `${filter} за период` : 'Всего за период'}</div>
+        <div className={NUM_DISPLAY_CLS + ' mt-1 text-[28px]'} style={{ color: 'var(--color-accent)' }}>
+          +{formatMoney(total)}
         </div>
-        <div className="text-[20px] font-bold tabular-nums">+{formatMoney(total)}</div>
       </div>
       {adding ? (
         <IncomeForm onClose={() => setAdding(false)} />
@@ -474,7 +499,9 @@ function IncomeTab({ from, to }: { from: string; to: string }) {
                   {formatDateRu(it.createdAt.slice(0, 10))}
                 </div>
               </div>
-              <div className="shrink-0 text-[14px] font-bold tabular-nums">+{formatMoney(it.totalPaid)}</div>
+              <div className="shrink-0 font-[family-name:var(--font-mono)] text-[13px] font-bold tabular-nums" style={{ color: 'var(--color-accent)' }}>
+                +{formatMoney(it.totalPaid)}
+              </div>
             </li>
           ))}
         </ul>
@@ -543,7 +570,7 @@ function IncomeForm({ onClose }: { onClose: () => void }) {
             type="date"
             value={date}
             onChange={(e) => setDate(e.target.value)}
-            className="w-full rounded-xl border border-[var(--color-line)] bg-[var(--color-card)] px-3 py-2 text-[14px] focus:border-[var(--color-line-strong)] focus:outline-none"
+            className={FIELD_INPUT_CLS}
           />
         </Field>
       </div>
@@ -596,11 +623,11 @@ function ExpensesTab({ from, to }: { from: string; to: string }) {
         ))}
       </div>
 
-      <div className="rounded-2xl bg-[var(--color-card)] p-3 text-center">
-        <div className="text-[12px] text-[var(--color-ink-muted)]">
-          {filter ? `${filter} за период` : 'Всего за период'}
+      <div className="rounded-2xl bg-[var(--color-card)] p-4">
+        <div className={KICKER_CLS}>{filter ? `${filter} за период` : 'Всего за период'}</div>
+        <div className={NUM_DISPLAY_CLS + ' mt-1 text-[28px] text-[var(--color-ink)]'}>
+          −{formatMoney(total)}
         </div>
-        <div className="text-[20px] font-bold tabular-nums">−{formatMoney(total)}</div>
       </div>
       {adding ? (
         <ExpenseForm onClose={() => setAdding(false)} />
@@ -628,7 +655,7 @@ function ExpensesTab({ from, to }: { from: string; to: string }) {
                   {e.note ? ` · ${e.note}` : ''}
                 </div>
               </div>
-              <div className="shrink-0 text-[14px] font-bold tabular-nums">
+              <div className="shrink-0 font-[family-name:var(--font-mono)] text-[13px] font-bold tabular-nums text-[var(--color-ink)]">
                 −{formatMoney(e.amount)}
               </div>
             </li>
@@ -677,16 +704,18 @@ function ExpenseForm({ onClose }: { onClose: () => void }) {
       </div>
       <Field label="Категория">
         <div className="flex flex-wrap gap-1.5">
-          {EXPENSE_CATEGORIES.map((c) => (
-            <button
-              key={c}
-              onClick={() => setCategory(c)}
-              className={`rounded-full px-3 py-1.5 text-[12px] ${category === c ? 'bg-[var(--color-accent)]' : 'bg-[var(--color-chip)]'}`}
-              style={category === c ? { color: 'var(--color-accent-on)' } : undefined}
-            >
-              {c}
-            </button>
-          ))}
+          {EXPENSE_CATEGORIES.map((c) => {
+            const active = category === c;
+            return (
+              <button
+                key={c}
+                onClick={() => setCategory(c)}
+                className={`rounded-full px-3 py-1.5 text-[12px] font-medium ${active ? 'bg-[var(--color-accent)] text-[var(--color-accent-on)]' : 'bg-[var(--color-chip)]'}`}
+              >
+                {c}
+              </button>
+            );
+          })}
         </div>
       </Field>
       <div className="grid grid-cols-2 gap-3">
@@ -698,7 +727,7 @@ function ExpenseForm({ onClose }: { onClose: () => void }) {
             type="date"
             value={date}
             onChange={(e) => setDate(e.target.value)}
-            className="w-full rounded-2xl bg-[var(--color-chip)] px-4 py-3 text-[15px] outline-none focus:ring-2 focus:ring-ink/10"
+            className={FIELD_INPUT_CLS}
           />
         </Field>
       </div>
@@ -707,7 +736,7 @@ function ExpenseForm({ onClose }: { onClose: () => void }) {
           <select
             value={gymId}
             onChange={(e) => setGymId(e.target.value)}
-            className="w-full rounded-2xl bg-[var(--color-chip)] px-4 py-3 text-[15px] outline-none focus:ring-2 focus:ring-ink/10"
+            className={FIELD_INPUT_CLS}
           >
             <option value="">—</option>
             {gyms.map((g) => (

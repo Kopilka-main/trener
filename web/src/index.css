@@ -102,6 +102,74 @@ input[type="time"] {
   100% { opacity: 1; transform: translateY(0) scale(1); }
 }
 
+/* Плитки на главном экране тренера — material-like elevation и
+   лайм-glow при нажатии (active). Два варианта: обычная и primary (лайм). */
+.tile-shadow {
+  background: var(--color-card);
+  color: var(--color-ink);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.35),
+    0 0 0 1px var(--color-line),
+    0 1px 2px rgba(0, 0, 0, 0.30),
+    0 6px 14px -4px rgba(0, 0, 0, 0.45);
+  transition: box-shadow 180ms ease, transform 120ms ease;
+}
+
+.tile-shadow-primary {
+  background: linear-gradient(180deg,
+    color-mix(in srgb, var(--color-accent) 94%, white 6%),
+    var(--color-accent));
+  color: var(--color-accent-on);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.18),
+    0 2px 4px rgba(0, 0, 0, 0.25),
+    0 8px 16px -6px rgba(212, 255, 61, 0.30);
+  transition: box-shadow 180ms ease, transform 120ms ease;
+}
+/* Иконка-квадрат внутри плитки: вогнутая ниша с inset highlight/edge.
+   При нажатии на плитку (`:active`) ниша получает лайм-glow. */
+.tile-icon-shell {
+  background: var(--color-card-elevated);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.30),
+    0 0 0 1px var(--color-line);
+  transition: box-shadow 180ms ease, color 180ms ease;
+}
+
+.tile-icon-shell-primary {
+  background: rgba(11, 12, 16, 0.14);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.10),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.18);
+  transition: box-shadow 180ms ease;
+}
+
+/* Стрелочка ↗ в правом верхнем углу плитки: при тапе подсвечивается лаймом. */
+.tile-arrow {
+  color: var(--color-ink);
+  opacity: 0.40;
+  transition: color 180ms ease, opacity 180ms ease, filter 180ms ease;
+}
+.tile-shadow:active .tile-arrow {
+  color: var(--color-accent);
+  opacity: 1;
+  filter: drop-shadow(0 0 6px rgba(212, 255, 61, 0.85))
+          drop-shadow(0 0 12px rgba(212, 255, 61, 0.45));
+}
+
+.tile-arrow-primary {
+  color: var(--color-accent-on);
+  opacity: 0.70;
+  transition: opacity 180ms ease, filter 180ms ease;
+}
+.tile-shadow-primary:active .tile-arrow-primary {
+  opacity: 1;
+  filter: drop-shadow(0 0 6px rgba(11, 12, 16, 0.50));
+}
+
 /* Анимация удаления карточки (уведомление, упражнение из тренировки):
    плавный сворачивающийся фейд. Используется в NotificationsPage. */
 @keyframes card-collapse {

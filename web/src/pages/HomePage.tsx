@@ -420,26 +420,19 @@ function Tile({ title, sub, metrics, Icon, onClick, isPrimary, metricColor, kick
     <button
       onClick={onClick}
       className={
-        'relative flex h-full min-h-[120px] flex-col rounded-2xl px-3.5 pb-4 pt-3.5 text-left active:scale-[0.97] transition-transform ' +
-        (isPrimary
-          ? 'bg-[var(--color-accent)] text-[var(--color-accent-on)]'
-          : 'border border-[var(--color-line)] bg-[var(--color-card)]')
+        'relative flex h-full min-h-[120px] flex-col rounded-2xl px-3.5 pb-4 pt-3.5 text-left active:scale-[0.97] ' +
+        (isPrimary ? 'tile-shadow-primary' : 'tile-shadow')
       }
     >
       <span
-        className="flex h-10 w-10 items-center justify-center rounded-lg"
-        style={
-          isPrimary
-            ? { background: 'rgba(11,12,16,0.12)' }
-            : { background: 'var(--color-card-elevated)', border: '1px solid var(--color-line)' }
-        }
+        className={`flex h-10 w-10 items-center justify-center rounded-lg ${isPrimary ? 'tile-icon-shell-primary' : 'tile-icon-shell'}`}
       >
         <Icon size={20} strokeWidth={1.8} />
       </span>
 
       <ArrowUpRight
         size={14}
-        className={`absolute right-3.5 top-4 ${isPrimary ? 'opacity-70' : 'opacity-40'}`}
+        className={`absolute right-3.5 top-4 ${isPrimary ? 'tile-arrow-primary' : 'tile-arrow'}`}
         strokeWidth={1.8}
       />
 
