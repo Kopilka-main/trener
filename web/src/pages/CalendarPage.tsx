@@ -250,9 +250,10 @@ function ScrollableTimeGrid({
     const el = ref.current;
     if (!el) return;
     const HOUR_H = 56;
-    const now = new Date();
-    const currentHour = now.getHours();
-    const scrollHour = Math.max(0, currentHour - 1);
+    // По умолчанию автоскролл к 7:00 — типичное начало рабочего дня тренера.
+    // Раньше прыгало к текущему часу, но это неудобно вечером (видна
+    // только ночь) и утром до тренировок.
+    const scrollHour = 7;
     el.scrollTo({ top: (scrollHour - CAL_START_HOUR) * HOUR_H, behavior: 'auto' });
   }, [view, anchor]);
 
