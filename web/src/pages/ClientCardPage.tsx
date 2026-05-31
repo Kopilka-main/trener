@@ -50,10 +50,13 @@ export function ClientCardPage() {
   const { data: rangeSessions = [] } = useSessions(monthFrom, yearAheadIso, id);
   const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
   const monthEndIso = `${monthEnd.getFullYear()}-${pad2num(monthEnd.getMonth() + 1)}-${pad2num(monthEnd.getDate())}`;
-  const monthPlanned = rangeSessions.filter(
+  // Онлайн-тренировки не учитываются в балансе пакета и в календаре — у них
+  // отдельная сущность (онлайн-сопровождение с датой окончания).
+  const offlineSessions = rangeSessions.filter((s) => !s.isOnline);
+  const monthPlanned = offlineSessions.filter(
     (s) => s.status !== 'cancelled' && s.date >= monthFrom && s.date <= monthEndIso,
   ).length;
-  const futurePlanned = rangeSessions.filter(
+  const futurePlanned = offlineSessions.filter(
     (s) => s.status !== 'cancelled' && s.date >= today,
   ).length;
   // Сколько из запланированных будущих тренировок не покрыты оплатой.
@@ -63,8 +66,9 @@ export function ClientCardPage() {
 
   // Ближайшее запланированное занятие клиента — для блока «след.»
   // Минутный курсор «сейчас» для отсечения уже прошедших слотов сегодня.
+  // Тоже только оффлайн — онлайн идут отдельно через подписку.
   const nowMinutes = now.getHours() * 60 + now.getMinutes();
-  const nextSession = rangeSessions
+  const nextSession = offlineSessions
     .filter((s) => {
       if (s.status === 'cancelled') return false;
       if (s.date > today) return true;

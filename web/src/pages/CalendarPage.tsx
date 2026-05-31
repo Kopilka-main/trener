@@ -80,8 +80,16 @@ export function CalendarPage() {
     return { from: toISODate(g[0]), to: toISODate(g[41]) };
   }, [view, anchor]);
 
-  const { data: sessions = [] } = useSessions(range.from, range.to, clientId);
+  const { data: rawSessions = [] } = useSessions(range.from, range.to, clientId);
   const { data: paidMap = {} } = useSessionPaymentStatus(range.from, range.to);
+
+  // В тренерском (общем) календаре онлайн-тренировки скрыты — они идут
+  // отдельной сущностью в рамках онлайн-сопровождения. В режиме клиента
+  // (?clientId=…) показываем всё, чтобы тренер видел полное расписание клиента.
+  const sessions = useMemo(
+    () => (clientId ? rawSessions : rawSessions.filter((s) => !s.isOnline)),
+    [rawSessions, clientId]
+  );
 
   const visible = useMemo(() => {
     if (view === 'day') return sessions.filter((s) => s.date === toISODate(anchor));

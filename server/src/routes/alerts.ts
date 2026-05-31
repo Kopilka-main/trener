@@ -24,7 +24,7 @@ const balancesStmt = db.prepare<[], Row>(`
     (SELECT COUNT(*) FROM sessions
      WHERE client_id = c.id AND status = 'completed') AS used,
     (SELECT COUNT(*) FROM sessions
-     WHERE client_id = c.id AND status = 'planned'
+     WHERE client_id = c.id AND status = 'planned' AND is_online = 0
        AND date >= DATE('now') AND date <= DATE('now', '+7 days')) AS upcoming
   FROM clients c
 `);

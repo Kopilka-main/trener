@@ -97,15 +97,20 @@ export function HomePage() {
   const clientsCount = clients?.length ?? 48;
   const exercisesCount = exercises?.length ?? 86;
 
+  // Онлайн-тренировки не учитываются в счётчиках календаря тренера —
+  // они идут в рамках онлайн-сопровождения и видны только клиенту.
+  const sessionsOffline = (sessions ?? []).filter((s) => !s.isOnline);
+  const sessionsMonthOffline = (sessionsMonth ?? []).filter((s) => !s.isOnline);
+
   // Считаем все запланированные и проведённые сессии (включая отменённые) —
   // ровно так же, как в CalendarPage subLabel (там нет фильтра по status).
-  const todaySessions = (sessions ?? []).filter((s) => s.date === today);
+  const todaySessions = sessionsOffline.filter((s) => s.date === today);
   const todayCount = todaySessions.length;
-  const weekPlanned = (sessions ?? []).length;
-  const monthPlanned = (sessionsMonth ?? []).length;
+  const weekPlanned = sessionsOffline.length;
+  const monthPlanned = sessionsMonthOffline.length;
 
   const nowMinutes = now.getHours() * 60 + now.getMinutes();
-  const nextSession = (sessions ?? [])
+  const nextSession = sessionsOffline
     .filter((s) => {
       if (s.status === 'cancelled') return false;
       if (s.date > today) return true;
