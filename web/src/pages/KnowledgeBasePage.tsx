@@ -56,6 +56,39 @@ export function KnowledgeBasePage() {
             onClick={() => navigate(`${appBase()}/exercises/new`)}
           />
         </div>
+        <div className="mt-3 grid grid-cols-3 rounded-2xl bg-[var(--color-chip)] p-1">
+          <SegmentTab active={tab === 'workouts'} onClick={() => { setTab('workouts'); setCategory(null); setEquipment(null); }} count={filteredTemplates.length}>
+            Тренировки
+          </SegmentTab>
+          <SegmentTab active={tab === 'exercises'} onClick={() => { setTab('exercises'); setCategory(null); setEquipment(null); }} count={powerExercises.length}>
+            Упражнения
+          </SegmentTab>
+          <SegmentTab active={tab === 'flex'} onClick={() => { setTab('flex'); setCategory(null); setEquipment(null); }} count={flexExercises.length}>
+            Растяжка
+          </SegmentTab>
+        </div>
+
+        {/* Фильтр по группам мышц / категории */}
+        <div className="mt-3 -mx-5 flex gap-1.5 overflow-x-auto px-5 pb-2">
+          <FilterChip active={category === null} onClick={() => setCategory(null)}>Все</FilterChip>
+          {activeCats.map((c) => (
+            <FilterChip key={c} active={category === c} onClick={() => setCategory(c)}>{c}</FilterChip>
+          ))}
+        </div>
+
+        {/* Фильтр по тренажёру — только для табов exercises/flex */}
+        {(tab === 'exercises' || tab === 'flex') && (
+          <div className="-mx-5 flex gap-1.5 overflow-x-auto px-5 pb-2">
+            <FilterChip active={equipment === null} onClick={() => setEquipment(null)}>
+              <span className="opacity-60">Снаряд:</span> все
+            </FilterChip>
+            {EQUIPMENT.map((eq) => (
+              <FilterChip key={eq} active={equipment === eq} onClick={() => setEquipment(eq)}>
+                {eq}
+              </FilterChip>
+            ))}
+          </div>
+        )}
       </header>
 
       <div className="flex-1 overflow-y-auto px-4 pt-3 pb-3">
@@ -104,39 +137,6 @@ export function KnowledgeBasePage() {
             )}
           </ul>
         )}
-      </div>
-
-      {/* Нижняя панель управления: chip-фильтры (категория → снаряд) + segmented-табы. */}
-      <div className="sticky bottom-0 z-20 space-y-2 border-t border-[var(--color-line)] bg-[var(--color-bg)] px-3 pb-3 pt-2">
-        <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1">
-          <FilterChip active={category === null} onClick={() => setCategory(null)}>Все</FilterChip>
-          {activeCats.map((c) => (
-            <FilterChip key={c} active={category === c} onClick={() => setCategory(c)}>{c}</FilterChip>
-          ))}
-        </div>
-        {(tab === 'exercises' || tab === 'flex') && (
-          <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1">
-            <FilterChip active={equipment === null} onClick={() => setEquipment(null)}>
-              <span className="opacity-60">Снаряд:</span> все
-            </FilterChip>
-            {EQUIPMENT.map((eq) => (
-              <FilterChip key={eq} active={equipment === eq} onClick={() => setEquipment(eq)}>
-                {eq}
-              </FilterChip>
-            ))}
-          </div>
-        )}
-        <div className="grid grid-cols-3 rounded-2xl bg-[var(--color-chip)] p-1">
-          <SegmentTab active={tab === 'workouts'} onClick={() => { setTab('workouts'); setCategory(null); setEquipment(null); }} count={filteredTemplates.length}>
-            Тренировки
-          </SegmentTab>
-          <SegmentTab active={tab === 'exercises'} onClick={() => { setTab('exercises'); setCategory(null); setEquipment(null); }} count={powerExercises.length}>
-            Упражнения
-          </SegmentTab>
-          <SegmentTab active={tab === 'flex'} onClick={() => { setTab('flex'); setCategory(null); setEquipment(null); }} count={flexExercises.length}>
-            Растяжка
-          </SegmentTab>
-        </div>
       </div>
     </div>
   );
