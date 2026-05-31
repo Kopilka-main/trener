@@ -181,7 +181,7 @@ export function CalendarPage() {
           <div className="px-5 pb-1 text-[12px] text-[var(--color-ink-muted)]">{subLabel}</div>
           {(view === 'day' || view === 'week') && <ApprovalLegend />}
 
-          <ScrollableTimeGrid view={view} anchor={anchor}>
+          <ScrollableTimeGrid view={view} anchor={anchor} onSwipe={shift}>
             {view === 'day' && (
               <DayView
                 date={anchor}
@@ -226,12 +226,17 @@ function ScrollableTimeGrid({
   view,
   anchor,
   children,
+  onSwipe,
 }: {
   view: View;
   anchor: Date;
   children: React.ReactNode;
+  onSwipe?: (dir: -1 | 1) => void;
 }) {
   const ref = useRef<HTMLDivElement>(null);
+  // Стартовые координаты touch-жеста для распознавания горизонтального свайпа.
+  const touchRef = useRef<{ x: number; y: number; t: number } | null>(null);
+
   useEffect(() => {
     if (view !== 'day' && view !== 'week') return;
     const el = ref.current;
@@ -242,8 +247,33 @@ function ScrollableTimeGrid({
     const scrollHour = Math.max(0, currentHour - 1);
     el.scrollTo({ top: (scrollHour - CAL_START_HOUR) * HOUR_H, behavior: 'auto' });
   }, [view, anchor]);
+
+  const onPointerDown = (e: React.PointerEvent) => {
+    if (e.pointerType === 'mouse') return; // мышью — только клик/скролл, без свайпа
+    touchRef.current = { x: e.clientX, y: e.clientY, t: Date.now() };
+  };
+  const onPointerUp = (e: React.PointerEvent) => {
+    const start = touchRef.current;
+    touchRef.current = null;
+    if (!start || !onSwipe) return;
+    const dx = e.clientX - start.x;
+    const dy = e.clientY - start.y;
+    const dt = Date.now() - start.t;
+    // Свайп: горизонтальный, быстрый, амплитуда ≥ 60px, доминирует над вертикалью.
+    if (Math.abs(dx) < 60) return;
+    if (Math.abs(dx) < Math.abs(dy) * 1.4) return;
+    if (dt > 600) return;
+    onSwipe(dx > 0 ? -1 : 1);
+  };
+
   return (
-    <div ref={ref} className="flex-1 overflow-y-auto pb-6">
+    <div
+      ref={ref}
+      className="flex-1 overflow-y-auto pb-6"
+      onPointerDown={onPointerDown}
+      onPointerUp={onPointerUp}
+      onPointerCancel={() => { touchRef.current = null; }}
+    >
       {children}
     </div>
   );
