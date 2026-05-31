@@ -22,6 +22,31 @@ function pad2(n: number): string {
   return String(n).padStart(2, '0');
 }
 
+// Подписка на localStorage уведомлений-dismissed. NotificationsPage пишет
+// массив id, скрытых пользователем; HomePage читает их, чтобы плитка
+// «Уведомления» не светилась, когда все алерты уже закрыты.
+function useDismissedNotifications(): Set<string> {
+  const [set, setSet] = useState<Set<string>>(() => loadDismissedSet());
+  useEffect(() => {
+    const sync = () => setSet(loadDismissedSet());
+    // Меняется в этом же окне → через 'storage' не приходит; ловим focus.
+    window.addEventListener('focus', sync);
+    window.addEventListener('storage', sync);
+    return () => {
+      window.removeEventListener('focus', sync);
+      window.removeEventListener('storage', sync);
+    };
+  }, []);
+  return set;
+}
+
+function loadDismissedSet(): Set<string> {
+  try {
+    const raw = localStorage.getItem('notifications_dismissed');
+    return new Set(raw ? (JSON.parse(raw) as string[]) : []);
+  } catch { return new Set(); }
+}
+
 function diffShort(future: Date, now: Date): string {
   const ms = future.getTime() - now.getTime();
   if (ms <= 0) return 'СЕЙЧАС';
@@ -45,11 +70,16 @@ type TileKey = 'clients' | 'calendar' | 'chat' | 'exercises' | 'finance' | 'noti
 export function HomePage() {
   const navigate = useNavigate();
   const { data: trainer } = useTrainer();
-  void useChatUnread('trainer');
+  const { data: chatUnreadData } = useChatUnread('trainer');
   const { data: clients } = useClients();
   const { data: exercises } = useExercises();
   const { data: alerts = [] } = useTrainerAlerts();
-  const hasDangerAlert = alerts.some((a) => a.severity === 'danger');
+
+  // Учитываем уведомления, скрытые пользователем в NotificationsPage
+  // (тот же ключ DISMISSED_KEY и формат alertKey, что и там).
+  const dismissedSet = useDismissedNotifications();
+  const visibleAlerts = alerts.filter((a) => a.severity !== 'info' && !dismissedSet.has(`alert:${a.type}:${a.clientId ?? 'sum'}`));
+  const hasDangerAlert = visibleAlerts.some((a) => a.severity === 'danger');
 
   const now = new Date();
   const today = isoDate(now);
@@ -62,8 +92,8 @@ export function HomePage() {
   const { data: sessions } = useSessions(today, weekAhead);
   const { data: sessionsMonth } = useSessions(today, monthAhead);
 
-  // Заглушка для демо-режима — плитка Сообщения всегда горит acid.
-  const chatBadge = 3;
+  // Реальное количество непрочитанных сообщений у тренера.
+  const chatBadge = chatUnreadData?.unread ?? 0;
   const clientsCount = clients?.length ?? 48;
   const exercisesCount = exercises?.length ?? 86;
 
@@ -100,14 +130,13 @@ export function HomePage() {
   const trainerName = trainer ? `${trainer.firstName} ${trainer.lastName}` : 'Алексей Морозов';
   const trainerTitle = trainer?.title ?? 'Персональный тренер';
 
-  // Один acid-fill на экран — primary плитка: чат если есть непрочитанные.
-  // Primary-плитка: один лайм на главную. Приоритет — danger-уведомления,
-  // затем непрочитанный чат, затем любые алерты.
+  // Один acid-fill на экран — primary плитка.
+  // Приоритет: danger-алерты → непрочитанный чат → видимые алерты warn.
   const primaryKey: TileKey | null = hasDangerAlert
     ? 'notifications'
     : chatBadge > 0
       ? 'chat'
-      : alerts.length > 0
+      : visibleAlerts.length > 0
         ? 'notifications'
         : null;
 
@@ -188,11 +217,11 @@ export function HomePage() {
     {
       key: 'notifications',
       title: 'Уведомления',
-      sub: alerts.length > 0 ? 'требуют внимания' : 'нет открытых задач',
-      metrics: alerts.length > 0 ? [{ v: pad2(alerts.length), s: 'новых' }] : [],
-      kicker: hasDangerAlert ? 'СРОЧНО' : alerts.length > 0 ? 'НОВЫЕ' : 'ВСЁ ТИХО',
+      sub: visibleAlerts.length > 0 ? 'требуют внимания' : 'нет открытых задач',
+      metrics: visibleAlerts.length > 0 ? [{ v: pad2(visibleAlerts.length), s: 'новых' }] : [],
+      kicker: hasDangerAlert ? 'СРОЧНО' : visibleAlerts.length > 0 ? 'НОВЫЕ' : 'ВСЁ ТИХО',
       Icon: Bell,
-      metricColor: alerts.length > 0 ? 'var(--color-accent)' : undefined,
+      metricColor: visibleAlerts.length > 0 ? 'var(--color-accent)' : undefined,
       onClick: () => navigate('/trainer/notifications'),
     },
   ];
