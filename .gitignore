@@ -12,6 +12,7 @@ server/data.db
 server/data.db-journal
 server/data.db-shm
 server/data.db-wal
+server/uploads/
 
 # editor
 .vscode/
