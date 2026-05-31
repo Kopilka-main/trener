@@ -41,8 +41,7 @@ export function ClientsPage() {
           <h1 className="text-[34px] font-bold leading-tight">Клиенты</h1>
           <button
             onClick={() => navigate(`${appBase()}/clients/new`)}
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
-            style={{ background: 'var(--color-accent)', color: 'var(--color-accent-on)' }}
+            className="tile-shadow-primary flex h-10 w-10 shrink-0 items-center justify-center rounded-full active:scale-[0.95]"
             aria-label="Добавить клиента"
           >
             <Plus size={18} />
@@ -55,7 +54,7 @@ export function ClientsPage() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Поиск по имени, тегу"
-            className="w-full rounded-2xl bg-[var(--color-chip)] py-3 pl-10 pr-4 text-sm placeholder:text-[var(--color-ink-muted)] focus:outline-none"
+            className="shelf w-full rounded-2xl py-3 pl-10 pr-4 text-sm placeholder:text-[var(--color-ink-muted)] focus:outline-none"
           />
         </div>
       </header>
@@ -97,7 +96,7 @@ function ClientRow({ client, onOpen }: { client: Client; onOpen: () => void }) {
       <button
         type="button"
         onClick={onOpen}
-        className="flex w-full items-center gap-3 rounded-2xl bg-[var(--color-card)] px-3 py-2.5 text-left active:scale-[0.99] transition-transform"
+        className="row-glow flex w-full items-center gap-3 rounded-2xl bg-[var(--color-card)] px-3 py-2.5 text-left active:bg-[var(--color-card-elevated)] transition-colors"
       >
         <Avatar firstName={client.firstName} lastName={client.lastName} size={44} />
         <div className="min-w-0 flex-1">
@@ -108,7 +107,7 @@ function ClientRow({ client, onOpen }: { client: Client; onOpen: () => void }) {
             </div>
           )}
         </div>
-        <ChevronRight size={16} className="shrink-0 text-[var(--color-ink-muted)]" />
+        <ChevronRight size={16} className="tile-chevron shrink-0" />
       </button>
     </li>
   );

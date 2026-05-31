@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { AlertTriangle, BarChart3, CalendarDays, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Dumbbell, FileText, Link2, Link2Off, MessageSquare, Pencil, Plus, TrendingUp, Trophy, Wallet, X } from 'lucide-react';
+import { AlertTriangle, ArrowRight, BarChart3, CalendarDays, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Dumbbell, FileText, Link2, Link2Off, MessageSquare, Pencil, Plus, TrendingUp, Trophy, Wallet, X } from 'lucide-react';
 import { ScreenHeader } from '../components/ScreenHeader';
 import { Avatar } from '../components/Avatar';
 import { Field, TextArea, TextInput } from '../components/Field';
@@ -61,6 +61,26 @@ export function ClientCardPage() {
   // Сколько оплаченных тренировок ещё НЕ назначены в календаре (свободный остаток).
   const futureNotAssigned = balance ? Math.max(0, balance.remaining - futurePlanned) : 0;
 
+  // Ближайшее запланированное занятие клиента — для блока «след.»
+  // Минутный курсор «сейчас» для отсечения уже прошедших слотов сегодня.
+  const nowMinutes = now.getHours() * 60 + now.getMinutes();
+  const nextSession = rangeSessions
+    .filter((s) => {
+      if (s.status === 'cancelled') return false;
+      if (s.date > today) return true;
+      if (s.date < today) return false;
+      const [h, m] = s.startTime.split(':').map(Number);
+      return h * 60 + m >= nowMinutes;
+    })
+    .sort((a, b) => (a.date === b.date ? a.startTime.localeCompare(b.startTime) : a.date.localeCompare(b.date)))[0];
+  const nextSessionDate = nextSession
+    ? (() => {
+        const [y, mo, d] = nextSession.date.split('-').map(Number);
+        const [hh, mm] = nextSession.startTime.split(':').map(Number);
+        return new Date(y, mo - 1, d, hh, mm);
+      })()
+    : null;
+
   // Календарь: компактный формат "назначено / остаток". Если перерасход — остаток отрицательный.
   const calendarMetric =
     futurePlanned === 0 && futureNotPaid === 0 && futureNotAssigned === 0
@@ -80,8 +100,8 @@ export function ClientCardPage() {
   return (
     <div className="flex h-full flex-col">
       <div className="flex-1 overflow-y-auto px-4 pb-8 pt-3 space-y-4">
-        {/* Шапка: аватар + имя + теги */}
-        <div className="rounded-3xl bg-[var(--color-card)] p-4 space-y-3">
+        {/* Шапка: аватар + имя + теги — без подложки, прямо на фоне приложения. */}
+        <div className="space-y-3 px-1 pt-1">
           <div className="flex items-center gap-3">
             <Avatar firstName={client.firstName} lastName={client.lastName} size={64} />
             <div className="min-w-0 flex-1">
@@ -116,10 +136,30 @@ export function ClientCardPage() {
           </div>
         )}
 
-        {/* CTA: переход к тренировкам */}
+        {/* Следующее запланированное занятие — kicker-строка с деталями.
+            Тап ведёт прямо в день календаря, где это занятие. */}
+        {nextSession && nextSessionDate && (
+          <button
+            onClick={() =>
+              navigate(`/trainer/calendar?clientId=${id}&date=${nextSession.date}&view=day`)
+            }
+            className="row-glow flex w-full items-center gap-2 px-1 text-left active:scale-[0.99]"
+            aria-label="Открыть занятие в календаре"
+          >
+            <div className="font-[family-name:var(--font-mono)] text-[11px] font-bold uppercase tracking-[0.06em] text-[var(--color-ink-muted)]">
+              СЛЕД. {formatDayShort(nextSession.date)} · {nextSession.startTime} · {sessionStageLabel(nextSession)}
+            </div>
+            <span className="inline-block rounded bg-[var(--color-accent)] px-1.5 py-0.5 font-[family-name:var(--font-mono)] text-[10px] font-bold tracking-[0.06em] text-[var(--color-accent-on)]">
+              {diffShort(nextSessionDate, now)}
+            </span>
+            <ArrowRight size={18} strokeWidth={2.4} className="tile-chevron shrink-0" />
+          </button>
+        )}
+
+        {/* CTA: переход к тренировкам — каскад из 3 шевронов («разгон») */}
         <button
           onClick={() => navigate(`/trainer/clients/${id}/workouts`)}
-          className="flex w-full items-center gap-3 rounded-2xl bg-[var(--color-accent)] p-4 text-left text-[var(--color-accent-on)]"
+          className="cta-launch flex w-full items-center gap-3 rounded-2xl bg-[var(--color-accent)] p-4 text-left text-[var(--color-accent-on)]"
         >
           <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-black/10">
             <Dumbbell size={20} />
@@ -130,7 +170,11 @@ export function ClientCardPage() {
               текущая + история
             </span>
           </span>
-          <ChevronRight size={18} className="shrink-0" />
+          <span className="flex shrink-0 items-center">
+            <ChevronRight size={18} className="cta-chevron cta-chevron-1" strokeWidth={2.4} />
+            <ChevronRight size={18} className="cta-chevron cta-chevron-2 -ml-2.5" strokeWidth={2.4} />
+            <ChevronRight size={18} className="cta-chevron cta-chevron-3 -ml-2.5" strokeWidth={2.4} />
+          </span>
         </button>
 
         {/* Сетка плиток-якорей: навигация и быстрый переход к секциям ниже */}
@@ -187,7 +231,7 @@ export function ClientCardPage() {
 
         {client.notes && (
           <Section title="Заметки">
-            <div className="rounded-2xl bg-[var(--color-card)] p-4 text-[14px] leading-relaxed whitespace-pre-line">
+            <div className="px-1 text-[14px] leading-relaxed whitespace-pre-line">
               {client.notes}
             </div>
           </Section>
@@ -238,20 +282,14 @@ function ClientNavTile({
   return (
     <button
       onClick={onClick}
-      className={`relative flex flex-col items-start gap-2 rounded-2xl p-4 text-left active:scale-[0.98] transition-transform ${
-        primary
-          ? 'bg-[var(--color-accent)] text-[var(--color-accent-on)]'
-          : 'border border-[var(--color-line)] bg-[var(--color-card)]'
-      }`}
+      className={
+        'relative flex flex-col items-start gap-2 rounded-2xl p-4 text-left active:scale-[0.98] ' +
+        (primary ? 'tile-shadow-primary' : 'tile-shadow')
+      }
     >
       <div className="flex w-full items-start justify-between">
         <span
-          className="flex h-11 w-11 items-center justify-center rounded-lg"
-          style={
-            primary
-              ? { background: 'rgba(11,12,16,0.12)' }
-              : { background: 'var(--color-card-elevated)', border: '1px solid var(--color-line)' }
-          }
+          className={`-ml-3 -mt-3 flex h-11 w-11 items-center justify-center rounded-lg ${primary ? 'tile-icon-shell-primary' : 'tile-icon-shell'}`}
         >
           <Icon size={20} strokeWidth={1.8} />
         </span>
@@ -320,13 +358,44 @@ function pad2num(n: number) {
   return n < 10 ? `0${n}` : `${n}`;
 }
 
+// Формат «31/05» из YYYY-MM-DD — короткая дата для kicker-строки.
+function formatDayShort(iso: string): string {
+  const [, m, d] = iso.split('-').map(Number);
+  return `${String(d).padStart(2, '0')}/${String(m).padStart(2, '0')}`;
+}
+
+// Текстовый статус согласования занятия для отображения в kicker-строке.
+function sessionStageLabel(s: { approval: 'none' | 'pending' | 'approved'; deliveredAt: string | null }): string {
+  if (s.approval === 'approved') return 'ПОДТВЕРЖДЕНА';
+  if (s.approval === 'pending') return s.deliveredAt ? 'ПОЛУЧЕНА' : 'ОТПРАВЛЕНА';
+  return 'НЕ ОТПРАВЛЕНА';
+}
+
+// «4Ч 48М» / «3Д» / «15М» — компактный диффер до будущего времени.
+// Дублируем тот же формат, что и на главном экране в kicker-строке.
+function diffShort(future: Date, now: Date): string {
+  const ms = future.getTime() - now.getTime();
+  if (ms <= 0) return 'СЕЙЧАС';
+  const totalMin = Math.round(ms / 60000);
+  const totalH = Math.floor(totalMin / 60);
+  if (totalH >= 24) {
+    const d = Math.floor(totalH / 24);
+    const h = totalH % 24;
+    return h === 0 ? `${d}Д` : `${d}Д ${h}Ч`;
+  }
+  const m = totalMin % 60;
+  if (totalH === 0) return `${m}М`;
+  if (m === 0) return `${totalH}Ч`;
+  return `${totalH}Ч ${m}М`;
+}
+
 // Значок «соединения» с клиентом в шапке карточки:
 //  • есть accountId — целая цепь, лайм (клиент подключён к приложению)
 //  • нет accountId  — разорванная цепь, серая (клиент не привязан)
 function ConnectionBadge({ connected }: { connected: boolean }) {
   const Icon = connected ? Link2 : Link2Off;
-  const color = connected ? 'var(--color-accent)' : 'var(--color-ink-mutedXL)';
-  const bg = connected ? 'rgba(212,255,61,0.14)' : 'var(--color-chip)';
+  const color = connected ? 'var(--color-ink)' : 'var(--color-ink-mutedXL)';
+  const bg = 'var(--color-chip)';
   return (
     <span
       className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full"

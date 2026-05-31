@@ -53,7 +53,12 @@ export function CalendarPage() {
         : 'week';
   const [view, setView] = useState<View>(initialView);
   const [creating, setCreating] = useState(false);
-  const [anchor, setAnchor] = useState<Date>(new Date());
+  // ?date=YYYY-MM-DD — открыть календарь на конкретной дате (например, из «след.» на карточке клиента).
+  const initialDateParam = params.get('date');
+  const initialAnchor = initialDateParam && /^\d{4}-\d{2}-\d{2}$/.test(initialDateParam)
+    ? (() => { const [y, mo, d] = initialDateParam.split('-').map(Number); return new Date(y, mo - 1, d); })()
+    : new Date();
+  const [anchor, setAnchor] = useState<Date>(initialAnchor);
   const [editing, setEditing] = useState<Session | null>(null);
   // Тап по пустому слоту: открыть форму с предзаполненными датой и временем.
   const [createAt, setCreateAt] = useState<{ date: string; startTime: string } | null>(null);

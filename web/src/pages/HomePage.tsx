@@ -425,7 +425,7 @@ function Tile({ title, sub, metrics, Icon, onClick, isPrimary, metricColor, kick
       }
     >
       <span
-        className={`flex h-10 w-10 items-center justify-center rounded-lg ${isPrimary ? 'tile-icon-shell-primary' : 'tile-icon-shell'}`}
+        className={`-ml-3 -mt-3 flex h-10 w-10 items-center justify-center rounded-lg ${isPrimary ? 'tile-icon-shell-primary' : 'tile-icon-shell'}`}
       >
         <Icon size={20} strokeWidth={1.8} />
       </span>
