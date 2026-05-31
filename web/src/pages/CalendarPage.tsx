@@ -134,14 +134,6 @@ export function CalendarPage() {
       <ScreenHeader
         title={clientId && filterClient ? `Календарь · ${filterClient.firstName} ${filterClient.lastName}` : 'Календарь'}
         back
-        right={
-          <button
-            onClick={() => { setCreating(true); setEditing(null); }}
-            className="flex items-center gap-1 rounded-full bg-[var(--color-accent)] px-3 py-1.5 text-[13px] font-semibold text-[var(--color-accent-on)]"
-          >
-            <Plus size={14} /> Запись
-          </button>
-        }
       />
 
       {showForm ? (
@@ -156,29 +148,7 @@ export function CalendarPage() {
         </div>
       ) : (
         <>
-          <div className="flex items-center justify-between px-4 pb-1">
-            <div className="flex items-center gap-1">
-              <button onClick={() => shift(-1)} className="flex h-8 w-8 items-center justify-center rounded-full active:bg-black/5" aria-label="Назад">
-                <ChevronLeft size={18} />
-              </button>
-              <button onClick={() => setAnchor(new Date())} className="min-w-[96px] text-center" title="К сегодняшнему дню">
-                <div className="text-[15px] font-bold leading-tight">{periodLabel}</div>
-              </button>
-              <button onClick={() => shift(1)} className="flex h-8 w-8 items-center justify-center rounded-full active:bg-black/5" aria-label="Вперёд">
-                <ChevronRight size={18} />
-              </button>
-            </div>
-            <Segmented<View>
-              value={view}
-              onChange={setView}
-              options={[
-                { value: 'day', label: 'День' },
-                { value: 'week', label: 'Неделя' },
-                { value: 'month', label: 'Месяц' },
-              ]}
-            />
-          </div>
-          <div className="px-5 pb-1 text-[12px] text-[var(--color-ink-muted)]">{subLabel}</div>
+          <div className="px-5 pt-1 text-[12px] text-[var(--color-ink-muted)]">{subLabel}</div>
           {(view === 'day' || view === 'week') && <ApprovalLegend />}
 
           <ScrollableTimeGrid view={view} anchor={anchor} onSwipe={shift}>
@@ -211,6 +181,39 @@ export function CalendarPage() {
               />
             )}
           </ScrollableTimeGrid>
+
+          {/* Нижняя панель управления: две строки.
+                Верхняя — крупный лейбл периода (тап → к сегодня) + FAB.
+                Нижняя — segmented-табы вида (День/Неделя/Месяц).
+              Свайп влево/вправо тоже переключает период. */}
+          <div className="sticky bottom-0 z-20 border-t border-[var(--color-line)] bg-[var(--color-bg)] px-4 pb-3 pt-2 space-y-2">
+            <div className="flex items-center justify-between gap-3">
+              <button
+                onClick={() => setAnchor(new Date())}
+                className="min-w-0 flex-1 rounded-lg py-1 text-left active:opacity-70"
+                title="К сегодняшнему дню"
+              >
+                <div className="truncate text-[20px] font-bold leading-tight">{periodLabel}</div>
+              </button>
+              <button
+                onClick={() => { setCreating(true); setEditing(null); }}
+                className="tile-shadow-primary flex h-12 w-12 shrink-0 items-center justify-center rounded-full active:scale-[0.95]"
+                aria-label="Запись"
+              >
+                <Plus size={22} />
+              </button>
+            </div>
+            <Segmented<View>
+              value={view}
+              onChange={setView}
+              fullWidth
+              options={[
+                { value: 'day', label: 'День' },
+                { value: 'week', label: 'Неделя' },
+                { value: 'month', label: 'Месяц' },
+              ]}
+            />
+          </div>
         </>
       )}
     </div>
@@ -291,20 +294,22 @@ function Segmented<T extends string>({
   value,
   options,
   onChange,
+  fullWidth,
 }: {
   value: T;
   options: { value: T; label: string }[];
   onChange: (v: T) => void;
+  fullWidth?: boolean;
 }) {
   return (
-    <div className="inline-flex rounded-full bg-[var(--color-chip)] p-0.5">
+    <div className={`${fullWidth ? 'flex' : 'inline-flex'} rounded-full bg-[var(--color-chip)] p-1`}>
       {options.map((o) => {
         const active = o.value === value;
         return (
           <button
             key={o.value}
             onClick={() => onChange(o.value)}
-            className={`shrink-0 rounded-full px-2.5 py-1 text-[12px] font-medium ${active ? 'bg-[var(--color-accent)] text-[var(--color-accent-on)]' : 'text-[var(--color-ink-muted)]'}`}
+            className={`${fullWidth ? 'flex-1' : 'shrink-0'} rounded-full px-3 py-1.5 text-[13px] font-medium ${active ? 'bg-[var(--color-accent)] text-[var(--color-accent-on)]' : 'text-[var(--color-ink-muted)]'}`}
           >
             {o.label}
           </button>

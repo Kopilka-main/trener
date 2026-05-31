@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowDown, ArrowUp, ChevronRight, ImagePlus, LineChart as LineChartIcon, Pencil, Plus, Trash2 } from 'lucide-react';
 import { ScreenHeader } from '../components/ScreenHeader';
@@ -33,21 +33,64 @@ export function ClientStatsPage() {
   const { id = '' } = useParams<{ id: string }>();
   const { data: client } = useClient(id);
   const [tab, setTab] = useState<Tab>('exercises');
+  // Категории и фильтр живут в родителе, чтобы chip-row уехала вниз вместе с табами.
+  const { data: exerciseItems = [] } = useClientExercisesOverview(id);
+  const categories = useMemo(() => {
+    const set = new Set<string>();
+    exerciseItems.forEach((i) => i.category && set.add(i.category));
+    return Array.from(set).sort();
+  }, [exerciseItems]);
+  const [exerciseFilter, setExerciseFilter] = useState<string>('all');
+  // Поднятое состояние «добавить» из MeasurementsTab — чтобы кнопка-«островок»
+  // жила в bottom-bar и появлялась только на табе Замеры.
+  const [addingMeasurement, setAddingMeasurement] = useState(false);
+  // Триггер открытия input[type=file] на табе Фото.
+  const photoPickRef = useRef<HTMLInputElement | null>(null);
+
   if (!client) return null;
   return (
     <div className="flex h-full flex-col">
       <ScreenHeader title={`Статистика · ${fullName(client.firstName, client.lastName)}`} back />
-      <div className="flex-shrink-0 px-4 pt-3">
+      <div className="flex-1 overflow-y-auto px-4 pb-4 pt-3">
+        {tab === 'exercises' && (
+          <ExercisesTab clientId={id} items={exerciseItems} filter={exerciseFilter} />
+        )}
+        {tab === 'measurements' && (
+          <MeasurementsTab clientId={id} adding={addingMeasurement} setAdding={setAddingMeasurement} />
+        )}
+        {tab === 'photos' && <PhotosTab clientId={id} pickRef={photoPickRef} />}
+      </div>
+      {/* Нижняя панель: «островок» меняется в зависимости от таба. */}
+      <div className="sticky bottom-0 z-20 border-t border-[var(--color-line)] bg-[var(--color-bg)] px-3 pb-3 pt-2 space-y-2">
+        {tab === 'exercises' && categories.length > 0 && (
+          <div className="flex gap-1.5 overflow-x-auto -mx-1 px-1">
+            <Chip active={exerciseFilter === 'all'} onClick={() => setExerciseFilter('all')}>Все</Chip>
+            {categories.map((c) => (
+              <Chip key={c} active={exerciseFilter === c} onClick={() => setExerciseFilter(c)}>{c}</Chip>
+            ))}
+          </div>
+        )}
+        {tab === 'measurements' && !addingMeasurement && (
+          <button
+            onClick={() => setAddingMeasurement(true)}
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--color-accent)] py-2.5 text-[14px] font-semibold text-[var(--color-accent-on)]"
+          >
+            <Plus size={16} /> Новый замер
+          </button>
+        )}
+        {tab === 'photos' && (
+          <button
+            onClick={() => photoPickRef.current?.click()}
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--color-accent)] py-2.5 text-[14px] font-semibold text-[var(--color-accent-on)]"
+          >
+            <ImagePlus size={16} /> Добавить фото
+          </button>
+        )}
         <div className="flex gap-1 rounded-xl bg-[var(--color-chip)] p-1">
           <TabButton active={tab === 'exercises'} onClick={() => setTab('exercises')}>Упражнения</TabButton>
           <TabButton active={tab === 'measurements'} onClick={() => setTab('measurements')}>Замеры</TabButton>
           <TabButton active={tab === 'photos'} onClick={() => setTab('photos')}>Фото</TabButton>
         </div>
-      </div>
-      <div className="flex-1 overflow-y-auto px-4 pb-8 pt-3">
-        {tab === 'exercises' && <ExercisesTab clientId={id} />}
-        {tab === 'measurements' && <MeasurementsTab clientId={id} />}
-        {tab === 'photos' && <PhotosTab clientId={id} />}
       </div>
     </div>
   );
@@ -70,46 +113,34 @@ function TabButton({ active, onClick, children }: { active: boolean; onClick: ()
 
 // ─── Упражнения ─────────────────────────────────────────────────────────────
 
-function ExercisesTab({ clientId }: { clientId: string }) {
-  const { data: items = [], isLoading } = useClientExercisesOverview(clientId);
+function ExercisesTab({
+  clientId,
+  items,
+  filter,
+}: {
+  clientId: string;
+  items: ExerciseOverview[];
+  filter: string;
+}) {
   const navigate = useNavigate();
-  const [filter, setFilter] = useState<string>('all');
-
-  const categories = useMemo(() => {
-    const set = new Set<string>();
-    items.forEach((i) => i.category && set.add(i.category));
-    return Array.from(set).sort();
-  }, [items]);
-
   const filtered = useMemo(() => {
     if (filter === 'all') return items;
     return items.filter((i) => (i.category ?? '') === filter);
   }, [items, filter]);
 
-  if (isLoading) return <Empty>Загрузка…</Empty>;
   if (items.length === 0)
     return <Empty>Пока нет данных — клиент ещё не делал упражнений в проведённых тренировках.</Empty>;
 
   return (
-    <div className="space-y-3">
-      {categories.length > 0 && (
-        <div className="flex gap-1.5 overflow-x-auto -mx-4 px-4 pb-1">
-          <Chip active={filter === 'all'} onClick={() => setFilter('all')}>Все</Chip>
-          {categories.map((c) => (
-            <Chip key={c} active={filter === c} onClick={() => setFilter(c)}>{c}</Chip>
-          ))}
-        </div>
-      )}
-      <div className="space-y-2">
-        {filtered.map((ex) => (
-          <ExerciseRow
-            key={ex.exerciseId}
-            ex={ex}
-            onClick={() => navigate(`/trainer/clients/${clientId}/stats/exercises/${ex.exerciseId}`)}
-          />
-        ))}
-        {filtered.length === 0 && <Empty>В этой группе пока пусто.</Empty>}
-      </div>
+    <div className="space-y-2">
+      {filtered.map((ex) => (
+        <ExerciseRow
+          key={ex.exerciseId}
+          ex={ex}
+          onClick={() => navigate(`/trainer/clients/${clientId}/stats/exercises/${ex.exerciseId}`)}
+        />
+      ))}
+      {filtered.length === 0 && <Empty>В этой группе пока пусто.</Empty>}
     </div>
   );
 }
@@ -201,11 +232,18 @@ function Empty({ children }: { children: React.ReactNode }) {
 
 // ─── Замеры ─────────────────────────────────────────────────────────────────
 
-function MeasurementsTab({ clientId }: { clientId: string }) {
+function MeasurementsTab({
+  clientId,
+  adding,
+  setAdding,
+}: {
+  clientId: string;
+  adding: boolean;
+  setAdding: (v: boolean) => void;
+}) {
   const { data: items = [], isLoading } = useClientMeasurements(clientId);
   const navigate = useNavigate();
   const [editing, setEditing] = useState<Measurement | null>(null);
-  const [adding, setAdding] = useState(false);
   return (
     <div className="space-y-3">
       {items.length >= 2 && (
@@ -221,12 +259,6 @@ function MeasurementsTab({ clientId }: { clientId: string }) {
           <ChevronRight size={18} className="text-[var(--color-ink-mutedXL)]" />
         </button>
       )}
-      <button
-        onClick={() => setAdding(true)}
-        className="flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-[var(--color-line-strong)] bg-[var(--color-card)] py-3 text-[14px] font-medium text-[var(--color-ink)]"
-      >
-        <Plus size={16} /> Новый замер
-      </button>
 
       {isLoading && <Empty>Загрузка…</Empty>}
       {!isLoading && items.length === 0 && <Empty>Замеров пока нет.</Empty>}
@@ -534,7 +566,13 @@ function PairField({
 
 // ─── Фото прогресса ─────────────────────────────────────────────────────────
 
-function PhotosTab({ clientId }: { clientId: string }) {
+function PhotosTab({
+  clientId,
+  pickRef,
+}: {
+  clientId: string;
+  pickRef: React.MutableRefObject<HTMLInputElement | null>;
+}) {
   const { data: photos = [], isLoading } = useClientProgressPhotos(clientId);
   const upload = useUploadProgressPhoto(clientId);
   const remove = useDeleteProgressPhoto(clientId);
@@ -589,11 +627,11 @@ function PhotosTab({ clientId }: { clientId: string }) {
             ))}
           </div>
         </div>
-        <label className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-[var(--color-line-strong)] py-3 text-[13px] font-medium">
-          <ImagePlus size={16} />
-          {upload.isPending ? 'Загрузка…' : 'Выбрать фото'}
-          <input type="file" accept="image/*" className="hidden" onChange={onPick} />
-        </label>
+        {/* Кнопка «Добавить фото» — теперь в bottom-bar, триггерит этот скрытый input через pickRef. */}
+        <input ref={pickRef} type="file" accept="image/*" className="hidden" onChange={onPick} />
+        {upload.isPending && (
+          <div className="text-center text-[12px] text-[var(--color-ink-muted)]">Загрузка…</div>
+        )}
       </div>
 
       {isLoading && <Empty>Загрузка…</Empty>}
