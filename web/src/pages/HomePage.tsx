@@ -101,7 +101,15 @@ export function HomePage() {
   const trainerTitle = trainer?.title ?? 'Персональный тренер';
 
   // Один acid-fill на экран — primary плитка: чат если есть непрочитанные.
-  const primaryKey: TileKey | null = chatBadge > 0 ? 'chat' : null;
+  // Primary-плитка: один лайм на главную. Приоритет — danger-уведомления,
+  // затем непрочитанный чат, затем любые алерты.
+  const primaryKey: TileKey | null = hasDangerAlert
+    ? 'notifications'
+    : chatBadge > 0
+      ? 'chat'
+      : alerts.length > 0
+        ? 'notifications'
+        : null;
 
   // Финансы за периоды. Если в БД мало данных и значения совпали — подменяем
   // демо-числами, чтобы ротация на плитке давала разные значения для смены.
